@@ -1,0 +1,134 @@
+@charset "utf-8";
+/* CSS Document */
+
+.board {
+    position: relative;
+    box-sizing: border-box;
+    background: #000000;
+    color:#FFFFFF;
+    max-width: 1200px;
+    margin:auto;
+    padding: 5px 20px 5px 20px;
+}
+
+.board h2 {
+    color:#ffbf80;
+}
+
+
+.board h3 {
+    margin: 5px;
+}
+
+.left-align {
+    display: inline;
+    float: left;
+
+}
+
+.right-align {
+    text-align: right;
+    display: inline;
+    float: right;
+}
+
+.subtitle {
+    padding: 0px 50px 0px 5px;
+    margin: 0px;
+    color: #b4b4b4;
+    background-color: #4d4d4d;
+    display: inline-block;
+    border-radius: 5px 5px 0px 0px;
+}
+
+.subboard {
+    clear: left;
+    margin: 10px;
+}
+
+/*table properties*/
+
+.scoreboard {
+  border-collapse: collapse;
+  border: 1px solid #6e6e6e;
+}
+
+
+.scoreboard tbody td, .scoreboard thead th {
+  border: 0px;
+  float:left;
+  padding: 5px;
+  border-left: 1px solid #6e6e6e;
+  border-bottom: 1px solid #6e6e6e;
+}
+
+.scoreboard thead tr th {
+  background-color: #ffbf80;
+  color: black;
+}
+
+.scoreboard tbody tr td {
+  color: white;
+  font-weight: bold;
+}
+
+/*table properies with fixed scrollable */
+
+
+.table-fixed {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 1px solid #6e6e6e;
+}
+
+
+.table-fixed tbody {
+  height: 200px;
+  overflow-y: scroll;
+  width: 100%;
+}
+
+.table-fixed thead {
+  overflow-y: scroll;
+}
+
+.table-fixed thead, .table-fixed tbody,.table-fixed tr,.table-fixed td, .table-fixed th {
+  display: block;
+}
+
+.table-fixed tbody td, .table-fixed thead th {
+  border: 0px;
+  float:left;
+  padding: 5px;
+  border-left: 1px solid #6e6e6e;
+  border-bottom: 1px solid #6e6e6e;
+}
+
+table.table-fixed tr th:first-child {
+  border-left: 0px;
+}
+
+table.table-fixed tr td:first-child {
+  border-left: 0px;
+}
+
+.table-fixed thead tr th {
+  background-color: #ffbf80;
+  color: black;
+}
+
+.table-fixed tbody tr td {
+  border-color:#6e6e6e;
+  color: white;
+}
+
+table.table-fixed tr:nth-child(even) td {
+  background-color: #232323;
+}
+table.table-fixed tr:nth-child(odd) td {
+  background-color: black;
+}
+
+
+

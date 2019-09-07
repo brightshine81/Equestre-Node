@@ -1,0 +1,16 @@
+{
+  "name": "equestre-site",
+  "version": "1.0.0",
+  "description": "real-time equestre site",
+  "main": "push_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node push_server.js"
+  },
+  "dependencies": {
+    "express": "4.13.4",
+    "socket.io": "^1.7.4"
+  },
+  "author": "JinLyu",
+  "license": "ISC"
+}
