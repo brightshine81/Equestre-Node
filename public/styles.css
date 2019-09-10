@@ -15,7 +15,6 @@
     color:#ffbf80;
 }
 
-
 .board h3 {
     margin: 5px;
 }
@@ -31,7 +30,6 @@
     display: inline;
     float: right;
 }
-
 .subtitle {
     padding: 0px 50px 0px 5px;
     margin: 0px;
@@ -43,37 +41,35 @@
 
 .subboard {
     clear: left;
-    margin: 10px;
+    padding: 10px;
 }
 
 /*table properties*/
 
-.scoreboard {
+.table-scoreboard {
   border-collapse: collapse;
   border: 1px solid #6e6e6e;
 }
 
-
-.scoreboard tbody td, .scoreboard thead th {
+.table-scoreboard tbody td, .table-scoreboard thead th {
   border: 0px;
-  float:left;
+  float: left;
   padding: 5px;
   border-left: 1px solid #6e6e6e;
   border-bottom: 1px solid #6e6e6e;
 }
 
-.scoreboard thead tr th {
+.table-scoreboard thead tr th {
   background-color: #ffbf80;
   color: black;
 }
 
-.scoreboard tbody tr td {
+.table-scoreboard tbody tr td {
   color: white;
   font-weight: bold;
 }
 
 /*table properies with fixed scrollable */
-
 
 .table-fixed {
   width: 100%;
@@ -84,7 +80,7 @@
 
 
 .table-fixed tbody {
-  height: 200px;
+  height: 300px;
   overflow-y: scroll;
   width: 100%;
 }
@@ -105,11 +101,11 @@
   border-bottom: 1px solid #6e6e6e;
 }
 
-table.table-fixed tr th:first-child {
+.table-fixed tr th:first-child {
   border-left: 0px;
 }
 
-table.table-fixed tr td:first-child {
+.table-fixed tr td:first-child {
   border-left: 0px;
 }
 
@@ -123,10 +119,10 @@ table.table-fixed tr td:first-child {
   color: white;
 }
 
-table.table-fixed tr:nth-child(even) td {
+.table-fixed tr:nth-child(even) td {
   background-color: #232323;
 }
-table.table-fixed tr:nth-child(odd) td {
+.table-fixed tr:nth-child(odd) td {
   background-color: black;
 }
 

@@ -1,86 +1,346 @@
+require('dotenv').config();
+
 // Setup basic express server
 var express = require('express');
 var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
-var port = process.env.PORT || 21741;
+var port = process.env.SOCKETIO_PORT || 21741;
+
+var dbaction = require('./db_actions');
+var Q = require('q');
 
 server.listen(port, function () {
-  console.log('Server listening at port %d', port);
+    console.log('Server listening at port %d', port);
 });
 
 // Routing
 app.use(express.static(__dirname + '/public'));
 
-// Chatroom
-
-var numUsers = 0;
+var events = [];
 
 io.on('connection', function (socket) {
-  var addedUser = false;
-
-  // when the client emits 'new message', this listens and executes
-  socket.on('new message', function (data) {
-    // we tell the client to execute 'new message'
-    socket.broadcast.emit('new message', {
-      username: socket.username,
-      message: data
+    socket.on('subscribe', function (room) {
+        console.log("subscribe: " + room);
+        socket.join(room);
     });
-  });
 
-  // when the client emits 'add user', this listens and executes
-  socket.on('add user', function (username) {
-    if (addedUser) return;
+    function getSocketEvent() {
+        if(socket.eventId === 0) {
+            console.error('invalid eventId');
+            return false;
+        }
 
-    // we store the username in the socket session for this client
-    socket.username = username;
-    ++numUsers;
-    addedUser = true;
-    socket.emit('login', {
-      numUsers: numUsers
-    });
-    // echo globally (all clients) that a person has connected
-    socket.broadcast.emit('user joined', {
-      username: socket.username,
-      numUsers: numUsers
-    });
-  });
+        // find event
+        let event = events.find((event) => {
+            return event.id === socket.eventId;
+        });
 
-  // when the client emits 'typing', we broadcast it to others
-  socket.on('typing', function () {
-    socket.broadcast.emit('typing', {
-      username: socket.username
-    });
-  });
-
-  // when the client emits 'stop typing', we broadcast it to others
-  socket.on('stop typing', function () {
-    socket.broadcast.emit('stop typing', {
-      username: socket.username
-    });
-  });
-
-  socket.on('set type', function (type) {
-	console.log("set type: " + type);
-	socket.emit('update', "test");
-
-  });
-
-  socket.on('send info', function (msg) {
-	console.log("send info: " + msg);
-	
-  });
-
-  // when the user disconnects.. perform this
-  socket.on('disconnect', function () {
-    if (addedUser) {
-      --numUsers;
-
-      // echo globally that this client has left
-      socket.broadcast.emit('user left', {
-        username: socket.username,
-        numUsers: numUsers
-      });
+        if(event === undefined) {
+            console.error('eventId not found in current:' + socket.eventId);
+            return false;
+        }
+        return event;
     }
-  });
+    /////////***   command processors   ***////////////////////////////////////////
+
+    // query and save to database and get eventId
+    async function processInfo(command) {
+        // command.title
+        // command.eventTitle
+        // command.startDate
+        // command.endDate
+        // command.eventDate
+		console.log("processInfo" + JSON.stringify(command));
+
+		try {
+            let eventId = await dbaction.findEvent(command.eventTitle, command.eventDate);
+
+            if(eventId === 0) {
+                eventId = await dbaction.addEvent(command);
+            }
+
+            socket.eventId = eventId;
+
+            // add to the event list
+            let event = getSocketEvent();
+
+            if(event === false) {
+                let event = {id: eventId, info: command};
+                events.push(event);
+                console.log("new event pushed: ");
+
+                // alarm to all client
+
+                console.log("consumer:start " + event.id);
+                socket.emit('start', { id: event.id} );
+            } else {
+                event.info = { ...event.info, ...command };
+
+                console.log("update event: " + event.info.toString());
+            }
+            // alarm to client
+            console.log("event:info " + JSON.stringify(event.info));
+            socket.to(event.id).emit('info', event.info);
+        } catch(error) {
+            console.log("processInfo: failed" + JSON.stringify(error));
+        }
+        console.log("processInfo finished.");
+    }
+
+    // save to database
+    async function processHorses(command) {
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("horses command: failed.");
+            return ;
+        }
+
+        // save to status
+        event.horses = command.list;
+
+        try {
+            await dbaction.deleteHorses(event.id);
+
+            let affected = 0;
+            for(let horse of command.list) {
+                var success = await dbaction.addHorse(event.id, horse);
+                if(success == 1) {
+                    affected++;
+                }
+            }
+
+            console.log("horses command: inserted=" + affected);
+            // alarm to client
+            socket.to(event.id).emit('horses', event.horses);
+        } catch(err) {
+            console.log("horses command failed: " + JSON.stringify(err));
+        }
+    }
+
+    async function processRiders(command) {
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("riders command: failed.");
+            return ;
+        }
+
+        // save to status
+        event.riders = command.list;
+
+        // delete previouse data
+        try {
+            await dbaction.deleteRiders(event.id);
+
+            let affected = 0;
+            for(let rider of command.list) {
+                var success = await dbaction.addRider(event.id, rider);
+                if(success == 1) {
+                    affected++;
+                }
+            }
+
+            console.log("riders command: inserted=" + affected);
+            // alarm to client
+            socket.to(event.id).emit('riders', event.riders);
+        } catch(err) {
+            console.log("horses command failed: " + JSON.stringify(err));
+        }
+    }
+
+    async function processRanking(command) {
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("ranking command: failed.");
+            return ;
+        }
+
+        // save to status
+        event.ranking = command.list;
+
+        try {
+            // delete previouse data
+            await dbaction.deleteRankings(event.id);
+
+            let affected = 0;
+            for(let rank of command.list) {
+                var success = await dbaction.addRanking(event.id, rank);
+                if(success == 1) {
+                    affected++;
+                }
+            }
+
+            console.log("ranking command: inserted=" + affected);
+            // alarm to client
+            socket.to(event.id).emit('ranking', event.ranking);
+        } catch(err) {
+            console.log("horses command failed: " + JSON.stringify(err));
+        }
+    }
+
+    // update state
+    function processRun(command) {
+        // command.number;
+        // command.lane;
+        // command.point;
+        // command.startTime;
+
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        // update status
+        let updated = {};
+        updated.number = command.number;
+        updated.lane = command.lane;
+        if(updated.lane === 1) {
+            updated.point1 = command.point;
+        } else {
+            updated.point2 = command.point;
+        }
+
+        event.realtime = { ...event.realtime, ...updated };
+
+        // alarm to client
+        socket.to(event.id).emit('realtime', event.realtime);
+
+        console.log("emited realtime(run)=" + JSON.stringify(event.realtime));
+    }
+
+    function processSync(command) {
+        // command.number;
+        // command.lane;
+        // command.time;
+        // command.curTime;
+
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        // update status
+        let updated = {};
+        updated.number = command.number;
+        updated.lane = command.lane;
+        if(updated.lane === 1) {
+            updated.time1 = command.time;
+        } else {
+            updated.time2 = command.time;
+        }
+
+        event.realtime = { ...event.realtime, ...updated };
+
+        // alarm to client
+        socket.to(event.id).emit('realtime', event.realtime);
+
+        console.log("emited realtime(sync)=" + JSON.stringify(event.realtime));
+    }
+
+    function processTimer1(command) {
+        // command.number;
+        // command.lane;
+        // command.time;
+        // command.point;
+    }
+
+    function processAtStart(command) {
+        // command.list
+    }
+
+    function processFinal(command) {
+        // command.number;
+        // command.lane;
+        // command.point;
+        // command.time;
+
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        // update status
+        let updated = {};
+        updated.number = command.number;
+        updated.lane = command.lane;
+        if(updated.lane === 1) {
+            updated.time1 = command.time;
+            updated.point1 = command.point;
+        } else {
+            updated.time2 = command.time;
+            updated.point2 = command.point;
+        }
+
+        event.realtime = { ...event.realtime, ...updated };
+
+        // alarm to client
+        socket.to(event.id).emit('realtime', event.realtime);
+        socket.to(event.id).emit('pause');
+
+        console.log("emited realtime(final)=" + JSON.stringify(event.realtime));
+    }
+
+    // message processor
+
+    socket.on('push', function (msg) {
+        // console.log("push: " + msg);
+        // check if provider
+        let rooms = Object.keys(socket.rooms);
+        if (rooms.includes('provider') === false) {
+            console.error("invalid push from client");
+            return;
+        }
+
+        var obj = ((msg) => {
+            try {
+                return JSON.parse(msg);
+            } catch (e) {
+                return false;
+            }
+        })(msg);
+
+        if (!obj || typeof obj.cmd === 'undefined') {
+            console.error("invalid message");
+            return;
+        }
+
+        if (obj.cmd === 'atstart') {
+            processAtStart(obj);
+        } else if (obj.cmd === 'final') {
+            processFinal(obj);
+        } else if (obj.cmd === 'run') {
+            processRun(obj);
+        } else if (obj.cmd === 'sync') {
+            processSync(obj);
+        } else if (obj.cmd === 'timer1') {
+            processTimer1(obj);
+        } else if (obj.cmd === 'info') {
+            processInfo(obj);
+        } else if (obj.cmd === 'horses') {
+            processHorses(obj);
+        } else if (obj.cmd === 'riders') {
+            processRiders(obj);
+        } else if (obj.cmd === 'ranking') {
+            processRanking(obj);
+        }
+    });
+
+    // when the user disconnects.. perform this
+    socket.on('disconnect', function () {
+        let rooms = Object.keys(socket.rooms);
+        if (rooms.includes('provider') === false) {
+            return;
+        }
+
+        if (socket.eventId) {
+            // remove from running events
+            events = events.filter(event=>{ return event.id !== socket.eventId; });
+
+            // alarm to clients
+            socket.to('consumer').emit('end', { id: socket.eventId });
+        }
+    });
 });
