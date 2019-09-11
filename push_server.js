@@ -17,12 +17,65 @@ server.listen(port, function () {
 // Routing
 app.use(express.static(__dirname + '/public'));
 
+// current running events
 var events = [];
 
 io.on('connection', function (socket) {
     socket.on('subscribe', function (room) {
         console.log("subscribe: " + room);
-        socket.join(room);
+
+        // send about the event
+        if(room === "consumer" || room === "provider") {
+            socket.join(room);
+            console.log("joined to: " + room);
+
+            // console.log("[emit] socket:push");
+            // socket.emit("push", { cmd:"info", status:"success", data:{id: 0}});
+
+        } else {
+            // findout the event
+            let event = events.find((event) => {
+                return event.id === room;
+            });
+            console.log("found event: " + JSON.stringify(event));
+            if(event === undefined) {
+                console.log("cannot find room");
+                return ;
+            }
+
+            if(socket.eventIdJoint === event.id) {
+                console.log("already joined.");
+                return ;
+            }
+
+            // leave from prev and join to new
+            if(socket.eventIdJoint !== undefined) {
+                console.log("leave from: " + socket.eventIdJoint);
+                socket.leave(socket.eventIdJoint);
+            }
+            console.log("joined to: " + event.id);
+            socket.join(event.id);
+            socket.eventIdJoint = event.id;
+
+            // send the information
+            if(event.info !== undefined) {
+                console.log("[emit] socket:info");
+                socket.emit('info', event.info);
+            }
+            if(event.horses !== undefined) {
+                console.log("[emit] socket:horses");
+                socket.emit('horses', event.horses);
+            }
+            if(event.riders !== undefined) {
+                console.log("[emit] socket:riders");
+                socket.emit('riders', event.riders);
+            }
+            if(event.ranking !== undefined) {
+                console.log("[emit] socket:ranking");
+                socket.emit('ranking', event.ranking);
+            }
+
+        }
     });
 
     function getSocketEvent() {
@@ -37,7 +90,7 @@ io.on('connection', function (socket) {
         });
 
         if(event === undefined) {
-            console.error('eventId not found in current:' + socket.eventId);
+            console.error('eventId not found in current list:' + socket.eventId);
             return false;
         }
         return event;
@@ -51,7 +104,7 @@ io.on('connection', function (socket) {
         // command.startDate
         // command.endDate
         // command.eventDate
-		console.log("processInfo" + JSON.stringify(command));
+		console.log("processInfo: " + JSON.stringify(command));
 
 		try {
             let eventId = await dbaction.findEvent(command.eventTitle, command.eventDate);
@@ -66,39 +119,53 @@ io.on('connection', function (socket) {
             let event = getSocketEvent();
 
             if(event === false) {
-                let event = {id: eventId, info: command};
+                event = {id: eventId, info: command};
                 events.push(event);
                 console.log("new event pushed: ");
 
                 // alarm to all client
 
-                console.log("consumer:start " + event.id);
-                socket.emit('start', { id: event.id} );
+                console.log("[emit] consumer:start " + event.id);
+                socket.to("consumer").emit('start', { id: event.id} );
             } else {
                 event.info = { ...event.info, ...command };
 
                 console.log("update event: " + event.info.toString());
             }
             // alarm to client
-            console.log("event:info " + JSON.stringify(event.info));
-            socket.to(event.id).emit('info', event.info);
+            console.log("[emit] " + eventId + ":info " + JSON.stringify(event.info));
+            socket.to(eventId).emit('info', event.info);
+
+            // return result
+            console.log("[emit] socket:push");
+            socket.emit("push", { cmd:"info", status:"success", data:{id: eventId}});
+            return eventId;
         } catch(error) {
             console.log("processInfo: failed" + JSON.stringify(error));
+            return 0;
         }
-        console.log("processInfo finished.");
     }
 
     // save to database
     async function processHorses(command) {
+        console.log("processHorses started.");
+
         let event = getSocketEvent();
         if(event === false) {
             console.error("horses command: failed.");
             return ;
         }
 
+        console.log("event found: id=" + event.id + ", info=" + JSON.stringify(event.info));
+
         // save to status
         event.horses = command.list;
 
+        // alarm to client
+        console.log("[emit] " + event.id + ":horses ");
+        socket.to(event.id).emit('horses', event.horses);
+
+        // save to database
         try {
             await dbaction.deleteHorses(event.id);
 
@@ -111,14 +178,17 @@ io.on('connection', function (socket) {
             }
 
             console.log("horses command: inserted=" + affected);
-            // alarm to client
-            socket.to(event.id).emit('horses', event.horses);
+
         } catch(err) {
             console.log("horses command failed: " + JSON.stringify(err));
         }
+
+        console.log("processHorses finished.");
     }
 
     async function processRiders(command) {
+        console.log("processRiders started.");
+
         let event = getSocketEvent();
         if(event === false) {
             console.error("riders command: failed.");
@@ -128,7 +198,11 @@ io.on('connection', function (socket) {
         // save to status
         event.riders = command.list;
 
-        // delete previouse data
+        // alarm to client
+        console.log("[emit] " + event.id + ":riders " );
+        socket.to(event.id).emit('riders', event.riders);
+
+        // save to database
         try {
             await dbaction.deleteRiders(event.id);
 
@@ -139,13 +213,11 @@ io.on('connection', function (socket) {
                     affected++;
                 }
             }
-
             console.log("riders command: inserted=" + affected);
-            // alarm to client
-            socket.to(event.id).emit('riders', event.riders);
         } catch(err) {
             console.log("horses command failed: " + JSON.stringify(err));
         }
+        console.log("processRiders finished.");
     }
 
     async function processRanking(command) {
@@ -157,7 +229,11 @@ io.on('connection', function (socket) {
 
         // save to status
         event.ranking = command.list;
+        // alarm to client
+        console.log("[emit] " + event.id + ":ranking ");
+        socket.to(event.id).emit('ranking', event.ranking);
 
+        // save to database
         try {
             // delete previouse data
             await dbaction.deleteRankings(event.id);
@@ -171,11 +247,12 @@ io.on('connection', function (socket) {
             }
 
             console.log("ranking command: inserted=" + affected);
-            // alarm to client
-            socket.to(event.id).emit('ranking', event.ranking);
+
         } catch(err) {
             console.log("horses command failed: " + JSON.stringify(err));
         }
+
+        console.log("processRanking finished.");
     }
 
     // update state
@@ -192,8 +269,8 @@ io.on('connection', function (socket) {
         }
 
         // update status
-        let updated = {};
-        updated.number = command.number;
+        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
+        updated.no = command.no;
         updated.lane = command.lane;
         if(updated.lane === 1) {
             updated.point1 = command.point;
@@ -201,12 +278,11 @@ io.on('connection', function (socket) {
             updated.point2 = command.point;
         }
 
-        event.realtime = { ...event.realtime, ...updated };
+        event.realtime = { ...initial, ...event.realtime, ...updated };
 
         // alarm to client
+        console.log("[emit] " + event.id + ":realtime(run) " + JSON.stringify(event.realtime));
         socket.to(event.id).emit('realtime', event.realtime);
-
-        console.log("emited realtime(run)=" + JSON.stringify(event.realtime));
     }
 
     function processSync(command) {
@@ -222,8 +298,8 @@ io.on('connection', function (socket) {
         }
 
         // update status
-        let updated = {};
-        updated.number = command.number;
+        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
+        updated.no = command.no;
         updated.lane = command.lane;
         if(updated.lane === 1) {
             updated.time1 = command.time;
@@ -231,12 +307,11 @@ io.on('connection', function (socket) {
             updated.time2 = command.time;
         }
 
-        event.realtime = { ...event.realtime, ...updated };
+        event.realtime = { ...initial, ...event.realtime, ...updated };
 
         // alarm to client
+        console.log("[emit] " + event.id + ":realtime(sync) " + JSON.stringify(event.realtime));
         socket.to(event.id).emit('realtime', event.realtime);
-
-        console.log("emited realtime(sync)=" + JSON.stringify(event.realtime));
     }
 
     function processTimer1(command) {
@@ -264,7 +339,7 @@ io.on('connection', function (socket) {
 
         // update status
         let updated = {};
-        updated.number = command.number;
+        updated.no = command.no;
         updated.lane = command.lane;
         if(updated.lane === 1) {
             updated.time1 = command.time;
@@ -277,10 +352,11 @@ io.on('connection', function (socket) {
         event.realtime = { ...event.realtime, ...updated };
 
         // alarm to client
+        console.log("[emit] " + event.id + ":realtime(final) " + JSON.stringify(event.realtime));
         socket.to(event.id).emit('realtime', event.realtime);
-        socket.to(event.id).emit('pause');
 
-        console.log("emited realtime(final)=" + JSON.stringify(event.realtime));
+        console.log("[emit] " + event.id + ":pause ");
+        socket.to(event.id).emit('pause');
     }
 
     // message processor
@@ -340,6 +416,7 @@ io.on('connection', function (socket) {
             events = events.filter(event=>{ return event.id !== socket.eventId; });
 
             // alarm to clients
+            console.log("[emit] consumer:end " + socket.eventId);
             socket.to('consumer').emit('end', { id: socket.eventId });
         }
     });

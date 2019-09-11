@@ -1,83 +1,81 @@
-$(function() {
-  var FADE_TIME = 150; // ms
+$(function () {
+    var FADE_TIME = 150; // ms
 
-  // Initialize variables
-  var $window = $(window);
-  var $realtime = $('#realtime'); // tbody for realtime
-  var $ranking = $('#ranking'); // tbody for ranking list
-  var $title = $('#event-title');
-  var $date = $('#event-date');
+    // Initialize variables
+    var $window = $(window);
+    var $realtime = $('#realtime'); // tbody for realtime
+    var $ranking = $('#ranking'); // tbody for ranking list
+    var $title = $('#event-title');
+    var $date = $('#event-date');
 
-  var horses = {};
-  var riders = {};
+    var horses = {};
+    var riders = {};
+    var rankings = [];
 
-  // Prompt for setting a username
-  var connected = false;
-  var socket = io();
+    // Prompt for setting a username
+    var connected = false;
+    var socket = io();
 
-    socket.on('connection', function(){
-        socket.join("consumer");
-    });
+    socket.emit("subscribe", "consumer");
 //
 
-  //// messages to process
-  //   socket.to('consumer').emit('start', { id: event.id} );
-  //   socket.to('consumer').emit('end', { id: socket.eventId });
-  //   socket.to(event.id).emit('info', event.info);
-  //   socket.to(event.id).emit('horses', event.horses);
-  //   socket.to(event.id).emit('riders', event.riders);
-  //   socket.to(event.id).emit('ranking', event.ranking);
-  //   socket.to(event.id).emit('realtime', event.realtime);
-  //   socket.to(event.id).emit('pause');
+    //// messages to process
+    //   socket.to('consumer').emit('start', { id: event.id} );
+    //   socket.to('consumer').emit('end', { id: socket.eventId });
+    //   socket.to(event.id).emit('info', event.info);
+    //   socket.to(event.id).emit('horses', event.horses);
+    //   socket.to(event.id).emit('riders', event.riders);
+    //   socket.to(event.id).emit('ranking', event.ranking);
+    //   socket.to(event.id).emit('realtime', event.realtime);
+    //   socket.to(event.id).emit('pause');
 
     // Socket events
-    socket.on("start", function(data) {
-      console.log(JSON.stringify(data));
-      socket.join(data.id);
+    socket.on("start", function (data) {
+        console.log("[on] start:" + JSON.stringify(data));
+        socket.emit("subscribe", data.id);
     });
 
-    socket.on("end", function(data) {
-        console.log(JSON.stringify(data));
+    socket.on("end", function (data) {
+        console.log("[on] end:" + JSON.stringify(data));
         socket.leave(data.id);
     });
 
-    socket.on("info", function(data) {
-        console.log(JSON.stringify(data));
+    socket.on("info", function (data) {
+        console.log("[on] info:" + JSON.stringify(data));
         $title.text(data.eventTitle);
         $date.text(data.eventDate);
     });
 
     // Whenever the server emits 'login', log the login message
     socket.on('horses', function (data) {
-        console.log(JSON.stringify(data));
-        for(let horse of data) {
-            horses[horse.no] = data;
+        console.log("[on] horses:" + JSON.stringify(data));
+        for (let horse of data) {
+            horses[horse.no] = horse;
         }
+        updateRankingList();
     });
 
     socket.on('riders', function (data) {
-        console.log(JSON.stringify(data));
-        for(let rider of data) {
-            riders[rider.no] = data;
+        console.log("[on] riders:" + JSON.stringify(data));
+        for (let rider of data) {
+            riders[rider.no] = rider;
         }
+        updateRankingList();
     });
 
     socket.on('ranking', function (data) {
-        console.log(JSON.stringify(data));
-      data.sort((a, b) => {
-        return a.rank < b.rank;
-      });
+        console.log("[on] ranking:" + JSON.stringify(data));
+        data.sort((a, b) => {
+            return a.rank - b.rank;
+        });
 
-      var index = 1;
-        for(let ranking of data) {
-            addToRankingList(index++, ranking);
-        }
-        clearRankingRemains(index);
+        rankings = data;
+        updateRankingList();
     });
 
     socket.on('realtime', function (data) {
-        console.log(JSON.stringify(data));
-      setRuntimeList(data);
+        console.log("[on] realtime:" + JSON.stringify(data));
+        setRuntimeList(data);
     });
 
     socket.on('disconnect', function () {
@@ -86,6 +84,7 @@ $(function() {
 
     socket.on('reconnect', function () {
         console.log('you have been reconnected');
+        socket.emit("subscribe", "consumer");
     });
 
     socket.on('reconnect_error', function () {
@@ -99,39 +98,98 @@ $(function() {
     function setRuntimeList(record) {
         var tr = $('#realtime tr');
 
+        // clear content
+        if (record.no == 0) {
+            clearRuntimeList();
+            return;
+        }
         tr.children("td:nth-child(1)").html("&nbsp");
-        tr.children("td:nth-child(2)").html(record.number);
+        tr.children("td:nth-child(2)").html(record.no);
+        tr.children("td:nth-child(6)").html((record.point1 / 1000).toFixed(2));
+        tr.children("td:nth-child(7)").html((record.time1 / 1000).toFixed(2));
+        tr.children("td:nth-child(8)").html((record.point2 / 1000).toFixed(2));
+        tr.children("td:nth-child(9)").html((record.time2 / 1000).toFixed(2));
+
+        var horse = horses[record.no];
+        if (horse !== undefined) {
+            tr.children("td:nth-child(3)").html(horse.name);
+        } else {
+            tr.children("td:nth-child(3)").html("&nbsp");
+        }
+
+        var rider = riders[record.no];
+        if (rider !== undefined) {
+            tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
+            tr.children("td:nth-child(5)").html(rider.nation + "&nbsp");
+        } else {
+            tr.children("td:nth-child(4)").html("&nbsp");
+            tr.children("td:nth-child(5)").html("&nbsp");
+        }
     }
 
-  function addToRankingList(i, ranking) {
-    var tr = $('#ranking tr:nth-child(' + i + ')');
-    // tr.hide();
-      if(tr.length == 0) {
-          $('#ranking').append($('<tr>'));
-          tr = $('#ranking tr:last');
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-2").html("&nbsp"));
-          tr.append($('<td>').addClass("col-3").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-          tr.append($('<td>').addClass("col-1").html("&nbsp"));
-      }
+    function clearRuntimeList() {
+        var tds = $('#realtime tr td');
+        tds.html("&nbsp");
+    }
 
-      tr.children("td:nth-child(1)").html(ranking.rank);
-      tr.children("td:nth-child(2)").html(ranking.no);
-  }
+    function updateRankingList() {
+        var index = 1;
+        for (let ranking of rankings) {
+            addToRankingList(index++, ranking);
+        }
+        clearRankingRemains(index);
+    }
+
+    function addToRankingList(i, ranking) {
+        var tr = $('#ranking tr:nth-child(' + i + ')');
+
+        if (tr.length == 0) {
+            $('#ranking').append($('<tr>'));
+            tr = $('#ranking tr:last');
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-2").html("&nbsp"));
+            tr.append($('<td>').addClass("col-3").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+        }
+
+        tr.children("td:nth-child(1)").html(ranking.rank);
+        tr.children("td:nth-child(2)").html(ranking.no);
+
+        tr.children("td:nth-child(6)").html((ranking.point1 / 1000).toFixed(2));
+        tr.children("td:nth-child(7)").html((ranking.time1 / 1000).toFixed(2));
+        tr.children("td:nth-child(8)").html((ranking.point2 / 1000).toFixed(2));
+        tr.children("td:nth-child(9)").html((ranking.time2 / 1000).toFixed(2));
+
+        var horse = horses[ranking.no];
+        if (horse !== undefined) {
+            tr.children("td:nth-child(3)").html(horse.name);
+        } else {
+            tr.children("td:nth-child(3)").html("&nbsp");
+        }
+
+        var rider = riders[ranking.no];
+        if (rider !== undefined) {
+            tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
+            tr.children("td:nth-child(5)").html(rider.nation + "&nbsp");
+        } else {
+            tr.children("td:nth-child(4)").html("&nbsp");
+            tr.children("td:nth-child(5)").html("&nbsp");
+        }
+    }
 
     function clearRankingRemains(count) {
-      while(1) {
-          var tr = $('#ranking tr:nth-child(' + count + ')');
-          if(tr.length == 0)
-            break;
+        while (1) {
+            var tr = $('#ranking tr:nth-child(' + count + ')');
+            if (tr.length == 0)
+                break;
 
-          tr.remove();
-      }
+            tr.remove();
+        }
     }
 
 });

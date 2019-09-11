@@ -49,6 +49,7 @@
 .table-scoreboard {
   border-collapse: collapse;
   border: 1px solid #6e6e6e;
+    table-layout: fixed;
 }
 
 .table-scoreboard tbody td, .table-scoreboard thead th {
@@ -67,6 +68,9 @@
 .table-scoreboard tbody tr td {
   color: white;
   font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /*table properies with fixed scrollable */
@@ -117,6 +121,9 @@
 .table-fixed tbody tr td {
   border-color:#6e6e6e;
   color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .table-fixed tr:nth-child(even) td {
