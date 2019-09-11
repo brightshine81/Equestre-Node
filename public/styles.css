@@ -11,6 +11,12 @@
     padding: 5px 20px 5px 20px;
 }
 
+.load {
+    width: 200px;
+    display: block;
+    margin: auto;
+}
+
 .board h2 {
     color:#ffbf80;
 }
@@ -45,6 +51,17 @@
 }
 
 /*table properties*/
+td.center {
+    text-align: center;
+}
+
+td.right {
+    text-align: right;
+}
+
+td.left {
+    text-align: left;
+}
 
 .table-scoreboard {
   border-collapse: collapse;
@@ -81,7 +98,6 @@
   border-collapse: collapse;
   border: 1px solid #6e6e6e;
 }
-
 
 .table-fixed tbody {
   height: 300px;

@@ -38,15 +38,15 @@
         </thead>
         <tbody id="realtime">
           <tr>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-2">&nbsp</td>
-            <td class="col-3">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
+            <td class="col-1 center">&nbsp</td>
+            <td class="col-1 center">&nbsp</td>
+            <td class="col-2 left">&nbsp</td>
+            <td class="col-3 left">&nbsp</td>
+            <td class="col-1 center">&nbsp</td>
+            <td class="col-1 right">&nbsp</td>
+            <td class="col-1 right">&nbsp</td>
+            <td class="col-1 right">&nbsp</td>
+            <td class="col-1 right">&nbsp</td>
           </tr>
         </tbody>
       </table>
@@ -70,34 +70,16 @@
           </tr>
         </thead>
         <tbody id="ranking">
-        <tr>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-2">&nbsp</td>
-            <td class="col-3">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-        </tr>
-        <tr>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-2">&nbsp</td>
-            <td class="col-3">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-            <td class="col-1">&nbsp</td>
-        </tr>
         </tbody>
       </table>
     </div>
+      <button class="btn btn-success load">Load</button>
   </div>
 </main>
 <footer> </footer>
+<div id="noevent" class="alert alert-danger" style="display: none;">
+    There is no running event.
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/main.js"></script>
 </body>

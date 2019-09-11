@@ -1,13 +1,16 @@
+
 $(function () {
     var FADE_TIME = 150; // ms
 
     // Initialize variables
     var $window = $(window);
-    var $realtime = $('#realtime'); // tbody for realtime
-    var $ranking = $('#ranking'); // tbody for ranking list
     var $title = $('#event-title');
     var $date = $('#event-date');
 
+    // running events
+    var events = [];
+
+    // info of current event
     var horses = {};
     var riders = {};
     var rankings = [];
@@ -30,20 +33,33 @@ $(function () {
     //   socket.to(event.id).emit('pause');
 
     // Socket events
+    socket.on("events", function(data) {
+        console.log("[on] events:" + JSON.stringify(data));
+        events = data;
+        updateEventList();
+    });
+
     socket.on("start", function (data) {
         console.log("[on] start:" + JSON.stringify(data));
-        socket.emit("subscribe", data.id);
+        events.push(data);
+        updateEventList();
     });
 
     socket.on("end", function (data) {
         console.log("[on] end:" + JSON.stringify(data));
-        socket.leave(data.id);
+        events = events.filter((event) => {
+            return event.id !== data;
+        });
+        updateEventList();
     });
 
     socket.on("info", function (data) {
         console.log("[on] info:" + JSON.stringify(data));
         $title.text(data.eventTitle);
-        $date.text(data.eventDate);
+		var d = new Date(data.eventDate);
+
+		var datestring = d.getFullYear() + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+        $date.text(datestring);
     });
 
     // Whenever the server emits 'login', log the login message
@@ -84,6 +100,8 @@ $(function () {
 
     socket.on('reconnect', function () {
         console.log('you have been reconnected');
+        events = [];
+
         socket.emit("subscribe", "consumer");
     });
 
@@ -146,15 +164,15 @@ $(function () {
         if (tr.length == 0) {
             $('#ranking').append($('<tr>'));
             tr = $('#ranking tr:last');
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-2").html("&nbsp"));
-            tr.append($('<td>').addClass("col-3").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
+            tr.append($('<td>').addClass("col-2 left").html("&nbsp"));
+            tr.append($('<td>').addClass("col-3 left").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
         }
 
         tr.children("td:nth-child(1)").html(ranking.rank);
@@ -192,4 +210,20 @@ $(function () {
         }
     }
 
+    function updateEventList() {
+        for(event of events) {
+
+        }
+    }
+
+    $('.load').click(function() {
+        if(events.length == 0) {
+            $("#noevent").show();
+            return ;
+        }
+        $("#noevent").hide();
+        socket.emit("subscribe", events[0].id);
+    });
+
 });
+

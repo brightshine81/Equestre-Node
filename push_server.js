@@ -25,24 +25,33 @@ io.on('connection', function (socket) {
         console.log("subscribe: " + room);
 
         // send about the event
-        if(room === "consumer" || room === "provider") {
+        if(room === "provider") {
+            socket.join(room);
+            console.log("joined to: " + room);
+        } else if(room === "consumer") {
             socket.join(room);
             console.log("joined to: " + room);
 
+            // send running events
+            let eventInfos = events.map((event)=> {
+                return { id: event.id, info: event.info };
+            });
+            console.log("[emit] socket:events");
+            socket.emit('events', eventInfos);
+
             // console.log("[emit] socket:push");
             // socket.emit("push", { cmd:"info", status:"success", data:{id: 0}});
-
         } else {
             // findout the event
             let event = events.find((event) => {
                 return event.id === room;
             });
-            console.log("found event: " + JSON.stringify(event));
+
             if(event === undefined) {
                 console.log("cannot find room");
                 return ;
             }
-
+            console.log("found event: " );
             if(socket.eventIdJoint === event.id) {
                 console.log("already joined.");
                 return ;
@@ -74,7 +83,6 @@ io.on('connection', function (socket) {
                 console.log("[emit] socket:ranking");
                 socket.emit('ranking', event.ranking);
             }
-
         }
     });
 
@@ -125,11 +133,13 @@ io.on('connection', function (socket) {
 
                 // alarm to all client
 
-                console.log("[emit] consumer:start " + event.id);
-                socket.to("consumer").emit('start', { id: event.id} );
+                console.log("[emit] consumer:start " + event);
+                socket.to("consumer").emit('start', event );
             } else {
                 event.info = { ...event.info, ...command };
 
+                // clear realtime information
+                event.realtime = {};
                 console.log("update event: " + event.info.toString());
             }
             // alarm to client
