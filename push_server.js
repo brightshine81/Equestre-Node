@@ -83,6 +83,14 @@ io.on('connection', function (socket) {
                 console.log("[emit] socket:ranking");
                 socket.emit('ranking', event.ranking);
             }
+            if(event.startlist !== undefined) {
+                console.log("[emit] socket:startlist");
+                socket.emit('startlist', event.startlist);
+            }
+            if(event.final !== undefined) {
+                console.log("[emit] socket:final " + JSON.stringify(event.final));
+                socket.emit('final', event.final)
+            }
         }
     });
 
@@ -265,6 +273,22 @@ io.on('connection', function (socket) {
         console.log("processRanking finished.");
     }
 
+    async function processStartlist(command) {
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("ranking command: failed.");
+            return ;
+        }
+
+        // save to status
+        event.startlist = command.list;
+        // alarm to client
+        console.log("[emit] " + event.id + ":startlist ");
+        socket.to(event.id).emit('startlist', event.startlist);
+
+        console.log("processStartlist finished.");
+    }
+
     // update state
     function processRun(command) {
         // command.number;
@@ -293,6 +317,12 @@ io.on('connection', function (socket) {
         // alarm to client
         console.log("[emit] " + event.id + ":realtime(run) " + JSON.stringify(event.realtime));
         socket.to(event.id).emit('realtime', event.realtime);
+
+        if(event.running === undefined || event.running === false) {
+            event.running = true;
+            console.log("[emit] " + event.id + ":resume ");
+            socket.to(event.id).emit('resume');
+        }
     }
 
     function processSync(command) {
@@ -329,6 +359,18 @@ io.on('connection', function (socket) {
         // command.lane;
         // command.time;
         // command.point;
+
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        event.final = command;
+
+        // alarm to client
+        // console.log("[emit] " + event.id + ":final " + JSON.stringify(event.final));
+        // socket.to(event.id).emit('final', event.final);
     }
 
     function processAtStart(command) {
@@ -367,6 +409,7 @@ io.on('connection', function (socket) {
 
         console.log("[emit] " + event.id + ":pause ");
         socket.to(event.id).emit('pause');
+        event.running = false;
     }
 
     // message processor
@@ -411,6 +454,8 @@ io.on('connection', function (socket) {
             processRiders(obj);
         } else if (obj.cmd === 'ranking') {
             processRanking(obj);
+        } else if(obj.cmd === 'startlist') {
+            processStartlist(obj);
         }
     });
 

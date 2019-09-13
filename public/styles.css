@@ -1,7 +1,9 @@
 @charset "utf-8";
 /* CSS Document */
 
-.board {
+/*  total theme */
+
+body {
     position: relative;
     box-sizing: border-box;
     background: #000000;
@@ -11,22 +13,54 @@
     padding: 5px 20px 5px 20px;
 }
 
-.load {
-    width: 200px;
-    display: block;
-    margin: auto;
+ /*header with logo and language*/
+
+header {
+    height: 60px;
 }
 
-.board h2 {
+div.logo {
+    height: 100%;
+    width: 50%;
+    background: url("images/logo.png") no-repeat left center;
+    display: inline-block;
+    float: left;
+    max-width: 160px;
+}
+
+/*title with Event name & date*/
+
+div.title {
+    display: block;
+    height: 50px;
+}
+
+.title h2 {
     color:#ffbf80;
     font-size: 1.5em;
 }
 
-.board h4 {
+.title h4 {
     font-size: 1em;
 }
 
-.board h3 {
+/*nav menus with live, startlist & ranking*/
+
+.nav-pills .nav-item {
+    width: 200px;
+    text-align: center;
+    background-color: #808080;
+    border: solid white;
+    border-width: 0px 1px 0px 1px;
+    cursor: pointer;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #d6251e;
+    cursor: default;
+}
+
+.subtitle h3 {
     margin: 5px;
     font-size: 1em;
 }
@@ -34,12 +68,16 @@
 .left-align {
     display: inline;
     float: left;
+    margin: auto;
+    height: 100%;
 }
 
 .right-align {
     text-align: right;
     display: inline;
     float: right;
+    margin: auto;
+    height: 100%;
 }
 .subtitle {
     padding: 0px 50px 0px 5px;
@@ -96,6 +134,10 @@ td.flag {
 .table-scoreboard thead tr th {
   background-color: #ffbf80;
   color: black;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .table-scoreboard tbody tr td {
