@@ -58,7 +58,7 @@ $(function () {
         $title.text(data.eventTitle);
 		var d = new Date(data.eventDate);
 
-		var datestring = d.getFullYear() + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
         $date.text(datestring);
     });
 
@@ -138,7 +138,7 @@ $(function () {
         var rider = riders[record.no];
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
-            tr.children("td:nth-child(5)").html(rider.nation + "&nbsp");
+            tr.children("td:nth-child(5)").css("background", "url('images/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
@@ -168,7 +168,7 @@ $(function () {
             tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
             tr.append($('<td>').addClass("col-2 left").html("&nbsp"));
             tr.append($('<td>').addClass("col-3 left").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
+            tr.append($('<td>').addClass("col-1 flag").html("&nbsp"));
             tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
             tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
             tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
@@ -193,7 +193,7 @@ $(function () {
         var rider = riders[ranking.no];
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
-            tr.children("td:nth-child(5)").html(rider.nation + "&nbsp");
+            tr.children("td:nth-child(5)").css("background", "url('images/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
