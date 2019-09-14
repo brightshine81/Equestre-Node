@@ -92,10 +92,12 @@ io.on('connection', function (socket) {
                 socket.emit('final', event.final)
             }
 
-            if(event.running) {
+            if(event.realtime !== undefined) {
                 console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
                 socket.emit('realtime', event.realtime);
+            }
 
+            if(event.running) {
                 console.log("[emit] socket:resume ");
                 socket.emit('resume');
             }

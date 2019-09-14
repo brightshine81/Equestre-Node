@@ -10,6 +10,7 @@ $(function () {
     var realtime = {};  // live info
     var startlist = []; // startlist
     var rolling_timer;
+    var eventInfo = {}; // event.info
 
     // Prompt for setting a username
     var connected = false;
@@ -56,6 +57,8 @@ $(function () {
     socket.on("info", function (data) {
         console.log("[on] info:" + JSON.stringify(data));
 
+        eventInfo = data;
+
         $('#meeting-title').text(data.title);
         $('#event-title').text(data.eventTitle);
 
@@ -63,6 +66,8 @@ $(function () {
 
 		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
         $('#event-date').text(datestring);
+
+        updateTableHeaderColumns();
     });
 
     // Whenever the server emits 'login', log the login message
@@ -109,8 +114,23 @@ $(function () {
         console.log("[on] realtime:" + JSON.stringify(data));
         realtime = data;
 
+        // set position
+        let index = -1;
+        for(i = 0 ; i < startlist.length ; i++) {
+            if(startlist[i].no === realtime.no) {
+                index = i;
+            }
+        }
+        realtime.pos = index;
+
         // update except time
         setRuntimeList(false);
+
+        // update atstart and atend
+        if(realtime.pos !== -1) {
+            updateLiveAtStart(realtime.pos + 1);
+            updateLiveAtFinish(realtime.pos - 1);
+        }
     });
 
     socket.on('resume', function (data) {
@@ -127,20 +147,6 @@ $(function () {
         rolling_timer = setInterval(function() {
             updateRuntimeTimer(realtime.lane, started + (Date.now() - started_now));
         }, 100);
-
-        // update atstart when started
-        let index = -1;
-        for(i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === realtime.no) {
-                index = i;
-            }
-        }
-        updateLiveAtStart(index + 1);
-        updateLiveAtFinish(index - 1);
-
-        // full update
-        realtime.pos = index;
-        setRuntimeList(true);
     });
 
     socket.on('pause', function (data) {
@@ -187,6 +193,39 @@ $(function () {
 
     ///////////////////////////////////////////////////
     // UI management function
+    function updateTableHeaderColumns() {
+        // change header
+        let headers = $(".table-scoreboard thead tr");
+
+         if(eventInfo.jumpoffNumber > 0) {
+             headers.children("th:nth-child(6)").removeClass("col-2").addClass("col-1");
+             headers.children("th:nth-child(7)").removeClass("col-2").addClass("col-1");
+             headers.children("th:nth-child(8)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
+             headers.children("th:nth-child(9)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
+         } else {
+             headers.children("th:nth-child(6)").removeClass("col-1").addClass("col-2");
+             headers.children("th:nth-child(7)").removeClass("col-1").addClass("col-2");
+             headers.children("th:nth-child(8)").css("display", "none");
+             headers.children("th:nth-child(9)").css("display", "none");
+         }
+
+        // realtime
+        var tr = $('#live-realtime tr:first');
+
+        if(eventInfo.jumpoffNumber > 0) {
+            tr.children("td:nth-child(6)").removeClass("col-2").addClass("col-1");
+            tr.children("td:nth-child(7)").removeClass("col-2").addClass("col-1");
+            tr.children("td:nth-child(8)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
+            tr.children("td:nth-child(9)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
+        } else {
+            tr.children("td:nth-child(6)").removeClass("col-1").addClass("col-2");
+            tr.children("td:nth-child(7)").removeClass("col-1").addClass("col-2");
+            tr.children("td:nth-child(8)").css("display", "none");
+            tr.children("td:nth-child(9)").css("display", "none");
+        }
+
+    }
+
     //  fill the list from index to the atstart list
     function updateLiveAtStart(index) {
         let limit = (index + 3 < startlist.length)?(index + 3):startlist.length;
@@ -246,7 +285,7 @@ $(function () {
             clearRuntimeList();
             return;
         }
-        tr.children("td:nth-child(1)").html((realtime.pos===undefined)?"&nbsp":realtime.pos);
+        tr.children("td:nth-child(1)").html((realtime.pos===undefined)?"&nbsp":realtime.pos + 1);
         tr.children("td:nth-child(2)").html(realtime.no);
         tr.children("td:nth-child(6)").html((realtime.point1 / 1000).toFixed(2));
         tr.children("td:nth-child(8)").html((realtime.point2 / 1000).toFixed(2));
@@ -307,10 +346,16 @@ $(function () {
             tr.append($('<td>').addClass("col-2 left").html("&nbsp"));
             tr.append($('<td>').addClass("col-3 left").html("&nbsp"));
             tr.append($('<td>').addClass("col-1 flag").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+
+            if(eventInfo.jumpoffNumber > 0) {
+                tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+                tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+                tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+                tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+            } else {
+                tr.append($('<td>').addClass("col-2 right").html("&nbsp"));
+                tr.append($('<td>').addClass("col-2 right").html("&nbsp"));
+            }
         }
 
         tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":ranking.rank);
@@ -318,8 +363,11 @@ $(function () {
 
         tr.children("td:nth-child(6)").html(ranking.point1 === undefined?"&nbsp":(ranking.point1 / 1000).toFixed(2));
         tr.children("td:nth-child(7)").html(ranking.time1 === undefined?"&nbsp":(ranking.time1 / 1000).toFixed(2));
-        tr.children("td:nth-child(8)").html(ranking.point2 === undefined?"&nbsp":(ranking.point2 / 1000).toFixed(2));
-        tr.children("td:nth-child(9)").html(ranking.time2 === undefined?"&nbsp":(ranking.time2 / 1000).toFixed(2));
+
+        if(eventInfo.jumpoffNumber > 0) {
+            tr.children("td:nth-child(8)").html(ranking.point2 === undefined ? "&nbsp" : (ranking.point2 / 1000).toFixed(2));
+            tr.children("td:nth-child(9)").html(ranking.time2 === undefined ? "&nbsp" : (ranking.time2 / 1000).toFixed(2));
+        }
 
         var horse = horses[ranking.no];
         if (horse !== undefined) {
@@ -361,7 +409,7 @@ $(function () {
             return ;
         }
         $("#noevent").hide();
-        socket.emit("subscribe", events[0].id);
+        socket.emit("subscribe", events[events.length - 1].id);
     }
 });
 
