@@ -91,6 +91,14 @@ io.on('connection', function (socket) {
                 console.log("[emit] socket:final " + JSON.stringify(event.final));
                 socket.emit('final', event.final)
             }
+
+            if(event.running) {
+                console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
+                socket.emit('realtime', event.realtime);
+
+                console.log("[emit] socket:resume ");
+                socket.emit('resume');
+            }
         }
     });
 

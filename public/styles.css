@@ -4,6 +4,10 @@
 /*  total theme */
 
 body {
+	background: #000000;
+}
+
+.container {
     position: relative;
     box-sizing: border-box;
     background: #000000;
@@ -17,6 +21,7 @@ body {
 
 header {
     height: 60px;
+    padding: 10px;
 }
 
 div.logo {
@@ -33,6 +38,7 @@ div.logo {
 div.title {
     display: block;
     height: 50px;
+    padding: 10px;
 }
 
 .title h2 {
@@ -62,7 +68,7 @@ div.title {
 
 .subtitle h3 {
     margin: 5px;
-    font-size: 1em;
+    font-size: 1.2em;
 }
 
 .left-align {
@@ -128,7 +134,7 @@ td.flag {
   padding: 5px;
   border-left: 1px solid #6e6e6e;
   border-bottom: 1px solid #6e6e6e;
-    font-size: 0.8em;
+    font-size: 1em;
 }
 
 .table-scoreboard thead tr th {

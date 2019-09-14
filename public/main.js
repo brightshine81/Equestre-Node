@@ -77,6 +77,7 @@ $(function () {
         }
         updateRankingList();
         updateStartList();
+
     });
 
     socket.on('riders', function (data) {
@@ -86,6 +87,8 @@ $(function () {
         }
         updateRankingList();
         updateStartList();
+
+        $('[data-toggle="tooltip"]').tooltip();
     });
 
     socket.on('startlist', function (data) {
@@ -198,7 +201,7 @@ $(function () {
 
     // fill the rank from index to the atstart list
     function updateLiveAtFinish(index) {
-        let limit = (index - 3 >= 0)?(index - 3):-1;
+        let limit = -1; // (index - 3 >= 0)?(index - 3):-1;
 
         var row = 1;
 
@@ -254,6 +257,7 @@ $(function () {
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
             tr.children("td:nth-child(5)").css("background", "url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
+            tr.children("td:nth-child(5)").attr("data-toggle", "tooltip").attr("title", rider.nation);
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
@@ -318,6 +322,7 @@ $(function () {
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
             tr.children("td:nth-child(5)").css("background", "url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
+            tr.children("td:nth-child(5)").attr("data-toggle", "tooltip").attr("title", rider.nation);
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
