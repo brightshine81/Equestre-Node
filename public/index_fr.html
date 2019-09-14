@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Real-time Equestre</title>
+<title>Live-Timing Equestre</title>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -15,13 +15,13 @@
   <div class="logo"></div>
   <div class="dropdown right-align">
     <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
-      French
+      Français
     </button>
     <div class="dropdown-menu">
-      <a class="dropdown-item" href="index.html">English</a>
-      <a class="dropdown-item" href="index_ge.html">German</a>
-      <a class="dropdown-item" href="index_fr.html">French</a>
-      <a class="dropdown-item" href="index_it.html">Italian</a>
+      <a class="dropdown-item" href="index.html">Anglais</a>
+      <a class="dropdown-item" href="index_ge.html">Allemand</a>
+      <a class="dropdown-item" href="index_fr.html">Français</a>
+      <a class="dropdown-item" href="index_it.html">Italien</a>
     </div>
   </div>
 </header>
@@ -32,34 +32,35 @@
       <div id="nav-live" class="nav-link active">Live</div>
     </li>
     <li class="nav-item">
-      <div id="nav-startlist" class="nav-link">Start list</div>
+      <div id="nav-startlist" class="nav-link">Liste de depard</div>
     </li>
     <li class="nav-item">
-      <div id="nav-ranking" class="nav-link">Ranking</div>
+      <div id="nav-ranking" class="nav-link">Classements</div>
     </li>
   </ul>
   </nav>
 <div class="title">
-  <h2 id="event-title" class="left-align">&nbsp</h2>
-  <h4 id="event-date" class="right-align">&nbsp</h4>
+  <div class="left-align"><h2 id="meeting-title" >&nbsp</h2></div>
+  <div class="left-align"><h4 id="event-title" >&nbsp</h4></div>
+  <div class="right-align"><h2 id="event-date" >&nbsp</h2></div>
 </div>
 <section id="sec-live">
   <div class="subboard">
     <div class="subtitle">
-      <h3>Start List</h3>
+      <h3>Liste de depard</h3>
     </div>
     <table class="table table-scoreboard">
       <thead>
       <tr>
-        <th class="col-1">Rank</th>
-        <th class="col-1">Num</th>
-        <th class="col-2">Horse</th>
-        <th class="col-3">Rider</th>
+        <th class="col-1">Pos</th>
+        <th class="col-1">No:</th>
+        <th class="col-2">Cheval</th>
+        <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Round/Point</th>
-        <th class="col-1">Round/Time</th>
-        <th class="col-1">Jump-Off/Point</th>
-        <th class="col-1">Jump-Off/Time</th>
+        <th class="col-1">Mange/Points</th>
+        <th class="col-1">Mange/Temps</th>
+        <th class="col-1">Barrage/Points</th>
+        <th class="col-1">Barrage/Temps</th>
       </tr>
       </thead>
       <tbody id="live-atstart">
@@ -68,20 +69,20 @@
   </div>
     <div class="subboard">
       <div class="subtitle">
-        <h3>Current</h3>
+        <h3>au parcours</h3>
       </div>
       <table class="table table-scoreboard">
         <thead>
           <tr>
-            <th class="col-1">Rank</th>
-            <th class="col-1">Num</th>
-            <th class="col-2">Horse</th>
-            <th class="col-3">Rider</th>
+            <th class="col-1">Pos</th>
+            <th class="col-1">No:</th>
+            <th class="col-2">Cheval</th>
+            <th class="col-3">Cavallier</th>
             <th class="col-1">Nation</th>
-            <th class="col-1">Round/Point</th>
-            <th class="col-1">Round/Time</th>
-            <th class="col-1">Jump-Off/Point</th>
-            <th class="col-1">Jump-Off/Time</th>
+            <th class="col-1">Mange/Points</th>
+            <th class="col-1">Mange/Temps</th>
+            <th class="col-1">Barrage/Points</th>
+            <th class="col-1">Barrage/Temps</th>
           </tr>
         </thead>
         <tbody id="live-realtime">
@@ -101,33 +102,30 @@
     </div>
     <div class="subboard">
       <div class="subtitle">
-        <h3>At Finish</h3>
+        <h3>à l'arrivée</h3>
       </div>
        <table class="table table-scoreboard">
         <thead>
           <tr>
-            <th class="col-1">Rank</th>
-            <th class="col-1">Num</th>
-            <th class="col-2">Horse</th>
-            <th class="col-3">Rider</th>
+            <th class="col-1">Rang</th>
+            <th class="col-1">No:</th>
+            <th class="col-2">Cheval</th>
+            <th class="col-3">Cavallier</th>
             <th class="col-1">Nation</th>
-            <th class="col-1">Round/Point</th>
-            <th class="col-1">Round/Time</th>
-            <th class="col-1">Jump-Off/Point</th>
-            <th class="col-1">Jump-Off/Time</th>
+            <th class="col-1">Mange/Points</th>
+            <th class="col-1">Mange/Temps</th>
+            <th class="col-1">Barrage/Points</th>
+            <th class="col-1">Barrage/Temps</th>
           </tr>
         </thead>
         <tbody id="live-atfinish">
         </tbody>
       </table>
     </div>
-    <!--<button class="btn btn-success load">Load</button>-->
-  <div id="noevent" class="alert alert-danger" style="display: none;">
-    There is no running event.
-  </div>
-</section>
-  <section id="sec-startlist" style="display: none;">
-    <div class="subboard">
+  <div class="subboard">
+    <div class="subtitle">
+      <h3>Classements</h3>
+    </div>
     <table class="table table-scoreboard">
       <thead>
       <tr>
@@ -140,6 +138,31 @@
         <th class="col-1">Round/Time</th>
         <th class="col-1">Jump-Off/Point</th>
         <th class="col-1">Jump-Off/Time</th>
+      </tr>
+      </thead>
+      <tbody id="live-ranking">
+      </tbody>
+    </table>
+  </div>
+    <!--<button class="btn btn-success load">Load</button>-->
+  <div id="noevent" class="alert alert-danger" style="display: none;">
+    pas de Live-Timing pour le moment.
+  </div>
+</section>
+  <section id="sec-startlist" style="display: none;">
+    <div class="subboard">
+    <table class="table table-scoreboard">
+      <thead>
+      <tr>
+        <th class="col-1">Pos</th>
+        <th class="col-1">No:</th>
+        <th class="col-2">Cheval</th>
+        <th class="col-3">Cavallier</th>
+        <th class="col-1">Nation</th>
+        <th class="col-1">Mange/Points</th>
+        <th class="col-1">Mange/Temps</th>
+        <th class="col-1">Barrage/Points</th>
+        <th class="col-1">Barrage/Temps</th>
       </tr>
       </thead>
       <tbody id="startlist">
@@ -152,15 +175,15 @@
     <table class="table table-scoreboard">
       <thead>
       <tr>
-        <th class="col-1">Rank</th>
-        <th class="col-1">Num</th>
-        <th class="col-2">Horse</th>
-        <th class="col-3">Rider</th>
+        <th class="col-1">Rang</th>
+        <th class="col-1">No:</th>
+        <th class="col-2">Cheval</th>
+        <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Round/Point</th>
-        <th class="col-1">Round/Time</th>
-        <th class="col-1">Jump-Off/Point</th>
-        <th class="col-1">Jump-Off/Time</th>
+        <th class="col-1">Mange/Points</th>
+        <th class="col-1">Mange/Temps</th>
+        <th class="col-1">Barrage/Points</th>
+        <th class="col-1">Barrage/Temps</th>
       </tr>
       </thead>
       <tbody id="ranking">
@@ -169,7 +192,7 @@
     </div>
   </section>
 </main>
-<footer> </footer>
+<footer>© 2004-2019 FiveStars, Inc. All Rights Reserved.</footer>
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/main.js"></script>

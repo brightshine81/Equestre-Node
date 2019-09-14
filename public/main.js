@@ -1,12 +1,5 @@
 
 $(function () {
-    var FADE_TIME = 150; // ms
-
-    // Initialize variables
-    var $window = $(window);
-    var $title = $('#event-title');
-    var $date = $('#event-date');
-
     // running events
     var events = [];
 
@@ -62,11 +55,14 @@ $(function () {
 
     socket.on("info", function (data) {
         console.log("[on] info:" + JSON.stringify(data));
-        $title.text(data.eventTitle);
+
+        $('#meeting-title').text(data.title);
+        $('#event-title').text(data.eventTitle);
+
 		var d = new Date(data.eventDate);
 
 		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
-        $date.text(datestring);
+        $('#event-date').text(datestring);
     });
 
     // Whenever the server emits 'login', log the login message
@@ -77,7 +73,7 @@ $(function () {
         }
         updateRankingList();
         updateStartList();
-
+        updateLiveRankingList();
     });
 
     socket.on('riders', function (data) {
@@ -87,6 +83,7 @@ $(function () {
         }
         updateRankingList();
         updateStartList();
+        updateLiveRankingList();
 
         $('[data-toggle="tooltip"]').tooltip();
     });
@@ -105,6 +102,7 @@ $(function () {
 
         rankings = data;
         updateRankingList();
+        updateLiveRankingList();
     });
 
     socket.on('realtime', function (data) {
@@ -130,8 +128,6 @@ $(function () {
             updateRuntimeTimer(realtime.lane, started + (Date.now() - started_now));
         }, 100);
 
-        setRuntimeList(true);
-
         // update atstart when started
         let index = -1;
         for(i = 0 ; i < startlist.length ; i++) {
@@ -141,6 +137,10 @@ $(function () {
         }
         updateLiveAtStart(index + 1);
         updateLiveAtFinish(index - 1);
+
+        // full update
+        realtime.pos = index;
+        setRuntimeList(true);
     });
 
     socket.on('pause', function (data) {
@@ -194,6 +194,7 @@ $(function () {
         var row = 1;
         // load ranking data
         for(i = limit - 1 ; i >= index ; i--) {
+            startlist[i].rank = i + 1; // it is pos value
             addToRankingList("live-atstart", row++, startlist[i]);
         }
         clearRankingRemains("live-atstart", row);
@@ -201,7 +202,7 @@ $(function () {
 
     // fill the rank from index to the atstart list
     function updateLiveAtFinish(index) {
-        let limit = -1; // (index - 3 >= 0)?(index - 3):-1;
+        let limit = (index - 3 >= 0)?(index - 3):-1;
 
         var row = 1;
 
@@ -217,6 +218,14 @@ $(function () {
             }
         }
         clearRankingRemains("live-atfinish", row);
+    }
+
+    function updateLiveRankingList() {
+        var index = 1;
+        for (let ranking of rankings) {
+            addToRankingList("live-ranking", index++, ranking);
+        }
+        clearRankingRemains("live-ranking", index);
     }
 
     function updateRuntimeTimer(lane, value)
@@ -237,7 +246,7 @@ $(function () {
             clearRuntimeList();
             return;
         }
-        tr.children("td:nth-child(1)").html("&nbsp");
+        tr.children("td:nth-child(1)").html((realtime.pos===undefined)?"&nbsp":realtime.pos);
         tr.children("td:nth-child(2)").html(realtime.no);
         tr.children("td:nth-child(6)").html((realtime.point1 / 1000).toFixed(2));
         tr.children("td:nth-child(8)").html((realtime.point2 / 1000).toFixed(2));
@@ -273,6 +282,7 @@ $(function () {
     {
         var index = 1;
         for (let i = 0 ; i < startlist.length ; i++) {
+            startlist[i].rank = i + 1; // it is pos value
             addToRankingList("startlist", index++, startlist[i]);
         }
         clearRankingRemains("startlist", index);

@@ -41,23 +41,30 @@ div.title {
     padding: 10px;
 }
 
+.title div {
+    display: inline-block;
+    height: 100%;
+}
 .title h2 {
     color:#ffbf80;
     font-size: 1.5em;
+    padding: 0px 10px;
 }
 
 .title h4 {
+    color:#ffbf80;
+    display: inline-block;
     font-size: 1em;
+    vertical-align: sub;
 }
 
 /*nav menus with live, startlist & ranking*/
 
 .nav-pills .nav-item {
-    width: 200px;
+    width: 150px;
+    margin-right: 20px;
     text-align: center;
     background-color: #808080;
-    border: solid white;
-    border-width: 0px 1px 0px 1px;
     cursor: pointer;
 }
 
@@ -97,6 +104,11 @@ div.title {
 .subboard {
     clear: left;
     padding: 10px;
+}
+
+footer {
+    text-align: center;
+    margin: 10px;
 }
 
 /*table properties*/
