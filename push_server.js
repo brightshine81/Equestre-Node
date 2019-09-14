@@ -303,16 +303,16 @@ io.on('connection', function (socket) {
         }
 
         // update status
-        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
+        let updated = {};
         updated.no = command.no;
         updated.lane = command.lane;
-        if(updated.lane === 1) {
-            updated.point1 = command.point;
-        } else {
-            updated.point2 = command.point;
-        }
 
-        event.realtime = { ...initial, ...event.realtime, ...updated };
+        event.realtime = { ...event.realtime, ...updated };
+
+        if(event.realtime.points === undefined) {
+            event.realtime.points = {};
+        }
+        event.realtime.points[updated.lane] = command.point;
 
         // alarm to client
         console.log("[emit] " + event.id + ":realtime(run) " + JSON.stringify(event.realtime));
@@ -338,16 +338,16 @@ io.on('connection', function (socket) {
         }
 
         // update status
-        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
+        let updated = {};
         updated.no = command.no;
         updated.lane = command.lane;
-        if(updated.lane === 1) {
-            updated.time1 = command.time;
-        } else {
-            updated.time2 = command.time;
-        }
 
-        event.realtime = { ...initial, ...event.realtime, ...updated };
+        event.realtime = {  ...event.realtime, ...updated };
+
+        if(event.realtime.times === undefined) {
+            event.realtime.times = {};
+        }
+        event.realtime.times[updated.lane] = command.time;
 
         // alarm to client
         console.log("[emit] " + event.id + ":realtime(sync) " + JSON.stringify(event.realtime));
@@ -393,15 +393,18 @@ io.on('connection', function (socket) {
         let updated = {};
         updated.no = command.no;
         updated.lane = command.lane;
-        if(updated.lane === 1) {
-            updated.time1 = command.time;
-            updated.point1 = command.point;
-        } else {
-            updated.time2 = command.time;
-            updated.point2 = command.point;
-        }
 
         event.realtime = { ...event.realtime, ...updated };
+
+        if(event.realtime.points === undefined) {
+            event.realtime.points = {};
+        }
+        if(event.realtime.times === undefined) {
+            event.realtime.times = {};
+        }
+
+        event.realtime.points[updated.lane] = command.point;
+        event.realtime.times[updated.lane] = command.time;
 
         // alarm to client
         console.log("[emit] " + event.id + ":realtime(final) " + JSON.stringify(event.realtime));

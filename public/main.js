@@ -17,6 +17,7 @@ $(function () {
     var realtime = {};  // live info
     var startlist = []; // startlist
     var rolling_timer;
+    var eventInfo = {};     // event info
 
     // Prompt for setting a username
     var connected = false;
@@ -62,11 +63,18 @@ $(function () {
 
     socket.on("info", function (data) {
         console.log("[on] info:" + JSON.stringify(data));
+
+        eventInfo = data;
+
+        // update title
         $title.text(data.eventTitle);
 		var d = new Date(data.eventDate);
 
 		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
         $date.text(datestring);
+
+        // update columns
+        updateTableColumns();
     });
 
     // Whenever the server emits 'login', log the login message
@@ -184,6 +192,75 @@ $(function () {
 
     ///////////////////////////////////////////////////
     // UI management function
+
+    // update table columns #live-atstart, #live-realtime, #live-atfinish, #startlist, #ranking, .table-scoreboard
+    function updateTableColumns() {
+        updateTableHeaderColumns();
+
+        updateTableBodyColumns("live-atstart");
+        updateTableBodyColumns("live-realtime");
+        updateTableBodyColumns("live-atfinish");
+        updateTableBodyColumns("startlist");
+        updateTableBodyColumns("ranking");
+    }
+
+    function updateTableHeaderColumns() {
+        // change header
+        var total = 8 + (eventInfo.roundNumber + eventInfo.jumpoffNumber) * 2;
+        var percent = 100 / total;
+
+        var headers = $(".table-scoreboard thead tr");
+        for(var header of headers) {
+            var ths = header.children("th");
+
+            ths[0].css("max-witdh", percent);
+            ths[1].css("max-witdh", percent);
+            ths[2].css("max-witdh", percent * 2);
+            ths[3].css("max-witdh", percent * 3);
+            ths[4].css("max-witdh", percent);
+
+            for(i = 0 ; i < 4 ; i++) {
+                ths[5 + i * 2].css("max-witdh", percent);
+                ths[6 + i * 2].css("max-witdh", percent);
+
+                ths[5 + i * 2].css("display", (i < eventInfo.roundNumber)?"inline-block":"none");
+                ths[6 + i * 2].css("display", (i < eventInfo.roundNumber)?"inline-block":"none");
+
+                ths[13 + i * 2].css("max-witdh", percent);
+                ths[14 + i * 2].css("max-witdh", percent);
+
+                ths[13 + i * 2].css("display", (i < eventInfo.jumpoffNumber)?"inline-block":"none");
+                ths[14 + i * 2].css("display", (i < eventInfo.jumpoffNumber)?"inline-block":"none");
+            }
+        }
+    }
+
+
+    function updateTableBodyColumns(tableId) {
+        // change body
+        var total = 8 + (eventInfo.roundNumber + eventInfo.jumpoffNumber) * 2;
+        var percent = 100 / total;
+
+        var trs = $('#' + tableId + ' tr');
+
+        for(let tr of trs) {
+            var tds = tr.children("td");
+
+            tds[0].css("max-witdh", percent);
+            tds[1].css("max-witdh", percent);
+            tds[2].css("max-witdh", percent * 2);
+            tds[3].css("max-witdh", percent * 3);
+            tds[4].css("max-witdh", percent);
+
+            var visibleColumns = (eventInfo.roundNumber + eventInfo.jumpoffNumber) * 2;
+
+            for(i = 0 ; i < 16 ; i++) {
+                tds[i].css("max-witdh", percent);
+                tds[i].css("display", (i < visibleColumns)?"inline-block": "none");
+            }
+        }
+    }
+
     //  fill the list from index to the atstart list
     function updateLiveAtStart(index) {
         let limit = (index + 3 < startlist.length)?(index + 3):startlist.length;
@@ -194,6 +271,7 @@ $(function () {
             addToRankingList("live-atstart", row++, startlist[i]);
         }
         clearRankingRemains("live-atstart", row);
+        updateTableBodyColumns("live-atstart");
     }
 
     // fill the rank from index to the atstart list
@@ -214,6 +292,7 @@ $(function () {
             }
         }
         clearRankingRemains("live-atfinish", row);
+        updateTableBodyColumns("live-atfinish");
     }
 
     function updateRuntimeTimer(lane, value)
@@ -236,11 +315,34 @@ $(function () {
         }
         tr.children("td:nth-child(1)").html("&nbsp");
         tr.children("td:nth-child(2)").html(realtime.no);
-        tr.children("td:nth-child(6)").html((realtime.point1 / 1000).toFixed(2));
-        tr.children("td:nth-child(8)").html((realtime.point2 / 1000).toFixed(2));
-        if(fullupdate === true) {
-            tr.children("td:nth-child(7)").html((realtime.time1 / 1000).toFixed(2));
-            tr.children("td:nth-child(9)").html((realtime.time2 / 1000).toFixed(2));
+
+        let curIndex = 6;
+        for(i = 1 ; i <= eventInfo.roundNumber ; i++) {
+            let point, time;
+            if(ranking.points !== undefined) {
+                point = ranking.points['-' + i];
+            }
+            if(ranking.times !== undefined) {
+                time = ranking.times['-' + i];
+            }
+            tr.children("td:nth-child(" + curIndex + ")").html(point === undefined?"&nbsp":(point / 1000).toFixed(2));
+            if(fullupdate)
+                tr.children("td:nth-child(" + (curIndex + 1) + ")").html(time === undefined?"&nbsp":(time / 1000).toFixed(2));
+            curIndex += 2;
+        }
+
+        for(i = 1 ; i <= eventInfo.jumpoffNumber ; i++) {
+            let point, time;
+            if(ranking.points !== undefined) {
+                point = ranking.points['' + i];
+            }
+            if(ranking.times !== undefined) {
+                time = ranking.times['' + i];
+            }
+            tr.children("td:nth-child(" + curIndex + ")").html(point === undefined?"&nbsp":(point / 1000).toFixed(2));
+            if(fullupdate)
+                tr.children("td:nth-child(" + (curIndex + 1) + ")").html(time === undefined?"&nbsp":(time / 1000).toFixed(2));
+            curIndex += 2;
         }
 
         var horse = horses[realtime.no];
@@ -258,6 +360,8 @@ $(function () {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
         }
+
+        updateTableBodyColumns("live-realtime");
     }
 
     function clearRuntimeList() {
@@ -272,6 +376,7 @@ $(function () {
             addToRankingList("startlist", index++, startlist[i]);
         }
         clearRankingRemains("startlist", index);
+        updateTableBodyColumns("startlist");
     }
 
     function updateRankingList() {
@@ -280,6 +385,7 @@ $(function () {
             addToRankingList("ranking", index++, ranking);
         }
         clearRankingRemains("ranking", index);
+        updateTableBodyColumns("ranking");
     }
 
     function addToRankingList(tableId, i, ranking) {
@@ -288,24 +394,47 @@ $(function () {
         if (tr.length == 0) {
             $('#' + tableId).append($('<tr>'));
             tr = $('#' + tableId + ' tr:last');
-            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 center").html("&nbsp"));
-            tr.append($('<td>').addClass("col-2 left").html("&nbsp"));
-            tr.append($('<td>').addClass("col-3 left").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 flag").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
-            tr.append($('<td>').addClass("col-1 right").html("&nbsp"));
+            tr.append($('<td>').addClass("center").html("&nbsp"));
+            tr.append($('<td>').addClass("center").html("&nbsp"));
+            tr.append($('<td>').addClass("left").html("&nbsp"));
+            tr.append($('<td>').addClass("left").html("&nbsp"));
+            tr.append($('<td>').addClass("flag").html("&nbsp"));
+
+            for(i = 0 ; i < 4 * 2 * 4 ; i++) {
+                tr.append($('<td>').addClass("right").html("&nbsp"));
+            }
         }
 
         tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":ranking.rank);
         tr.children("td:nth-child(2)").html(ranking.no);
 
-        tr.children("td:nth-child(6)").html(ranking.point1 === undefined?"&nbsp":(ranking.point1 / 1000).toFixed(2));
-        tr.children("td:nth-child(7)").html(ranking.time1 === undefined?"&nbsp":(ranking.time1 / 1000).toFixed(2));
-        tr.children("td:nth-child(8)").html(ranking.point2 === undefined?"&nbsp":(ranking.point2 / 1000).toFixed(2));
-        tr.children("td:nth-child(9)").html(ranking.time2 === undefined?"&nbsp":(ranking.time2 / 1000).toFixed(2));
+        // fill the time & points
+        let curIndex = 6;
+        for(i = 1 ; i <= eventInfo.roundNumber ; i++) {
+            let point, time;
+            if(ranking.points !== undefined) {
+                point = ranking.points['-' + i];
+            }
+            if(ranking.times !== undefined) {
+                time = ranking.times['-' + i];
+            }
+            tr.children("td:nth-child(" + curIndex + ")").html(point === undefined?"&nbsp":(point / 1000).toFixed(2));
+            tr.children("td:nth-child(" + (curIndex + 1) + ")").html(time === undefined?"&nbsp":(time / 1000).toFixed(2));
+            curIndex += 2;
+        }
+
+        for(i = 1 ; i <= eventInfo.jumpoffNumber ; i++) {
+            let point, time;
+            if(ranking.points !== undefined) {
+                point = ranking.points['' + i];
+            }
+            if(ranking.times !== undefined) {
+                time = ranking.times['' + i];
+            }
+            tr.children("td:nth-child(" + curIndex + ")").html(point === undefined?"&nbsp":(point / 1000).toFixed(2));
+            tr.children("td:nth-child(" + (curIndex + 1) + ")").html(time === undefined?"&nbsp":(time / 1000).toFixed(2));
+            curIndex += 2;
+        }
 
         var horse = horses[ranking.no];
         if (horse !== undefined) {
