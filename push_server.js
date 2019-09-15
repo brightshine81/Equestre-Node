@@ -36,7 +36,7 @@ io.on('connection', function (socket) {
             let eventInfos = events.map((event)=> {
                 return { id: event.id, info: event.info };
             });
-            console.log("[emit] socket:events");
+            console.log("[emit] socket:events" + JSON.stringify(eventInfos));
             socket.emit('events', eventInfos);
 
             // console.log("[emit] socket:push");
@@ -100,7 +100,57 @@ io.on('connection', function (socket) {
             if(event.running) {
                 console.log("[emit] socket:resume ");
                 socket.emit('resume');
+            } else {
+                console.log("[emit] socket:pause ");
+                socket.emit('pause');
             }
+        }
+    });
+
+    socket.on('push', function (msg) {
+        // console.log("push: " + msg);
+        // check if provider
+        let rooms = Object.keys(socket.rooms);
+        if (rooms.includes('provider') === false) {
+            console.error("invalid push from client");
+            return;
+        }
+
+        var obj = ((msg) => {
+            try {
+                return JSON.parse(msg);
+            } catch (e) {
+                return false;
+            }
+        })(msg);
+
+        if (!obj || typeof obj.cmd === 'undefined') {
+            console.error("invalid message");
+            return;
+        }
+
+        if (obj.cmd === 'atstart') {
+            processAtStart(obj);
+        } else if (obj.cmd === 'final') {
+            processFinal(obj);
+        } else if (obj.cmd === 'run') {
+            processRun(obj);
+        } else if (obj.cmd === 'sync') {
+            processSync(obj);
+        } else if (obj.cmd === 'timer1') {
+            processTimer1(obj);
+        } else if (obj.cmd === 'info') {
+            processInfo(obj);
+        } else if (obj.cmd === 'horses') {
+            processHorses(obj);
+        } else if (obj.cmd === 'riders') {
+            processRiders(obj);
+        } else if (obj.cmd === 'ranking') {
+            processRanking(obj);
+        } else if(obj.cmd === 'startlist') {
+            processStartlist(obj);
+        } else if(obj.cmd === 'exit') {
+            processExit(obj);
         }
     });
 
@@ -422,58 +472,13 @@ io.on('connection', function (socket) {
         event.running = false;
     }
 
-    // message processor
-
-    socket.on('push', function (msg) {
-        // console.log("push: " + msg);
-        // check if provider
-        let rooms = Object.keys(socket.rooms);
-        if (rooms.includes('provider') === false) {
-            console.error("invalid push from client");
-            return;
-        }
-
-        var obj = ((msg) => {
-            try {
-                return JSON.parse(msg);
-            } catch (e) {
-                return false;
-            }
-        })(msg);
-
-        if (!obj || typeof obj.cmd === 'undefined') {
-            console.error("invalid message");
-            return;
-        }
-
-        if (obj.cmd === 'atstart') {
-            processAtStart(obj);
-        } else if (obj.cmd === 'final') {
-            processFinal(obj);
-        } else if (obj.cmd === 'run') {
-            processRun(obj);
-        } else if (obj.cmd === 'sync') {
-            processSync(obj);
-        } else if (obj.cmd === 'timer1') {
-            processTimer1(obj);
-        } else if (obj.cmd === 'info') {
-            processInfo(obj);
-        } else if (obj.cmd === 'horses') {
-            processHorses(obj);
-        } else if (obj.cmd === 'riders') {
-            processRiders(obj);
-        } else if (obj.cmd === 'ranking') {
-            processRanking(obj);
-        } else if(obj.cmd === 'startlist') {
-            processStartlist(obj);
-        }
-    });
 
     // when the user disconnects.. perform this
-    socket.on('disconnect', function () {
-        let rooms = Object.keys(socket.rooms);
-        if (rooms.includes('provider') === false) {
-            return;
+    function processExit(obj) {
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
         }
 
         if (socket.eventId) {
@@ -484,5 +489,8 @@ io.on('connection', function (socket) {
             console.log("[emit] consumer:end " + socket.eventId);
             socket.to('consumer').emit('end', { id: socket.eventId });
         }
-    });
+    }
+    // message processor
+
+
 });
