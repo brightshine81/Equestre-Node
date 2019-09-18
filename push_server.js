@@ -14,6 +14,9 @@ server.listen(port, function () {
     console.log('Server listening at port %d', port);
 });
 
+
+
+
 // Routing
 app.use(express.static(__dirname + '/public'));
 
