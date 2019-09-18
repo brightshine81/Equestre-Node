@@ -27,25 +27,32 @@ $(function () {
     //   socket.to(event.id).emit('riders', event.riders);
     //   socket.to(event.id).emit('startlist', event.startlist);
     //   socket.to(event.id).emit('ranking', event.ranking);
-    //   socket.to(event.id).emit('realtime', event.realtime);
+    //   socket.to(event.id).emit('ready', event.realtime);
     //   socket.to(event.id).emit('resume');
+    //   socket.to(event.id).emit('realtime', event.realtime);
     //   socket.to(event.id).emit('pause');
-    //   socket.to(event.id).emit('final', event.final);
+    //   socket.to(event.id).emit('final', event.realtime);
 
     // Socket events
+
+    // get the current running events information
     socket.on("events", function(data) {
         console.log("[on] events:" + JSON.stringify(data));
         events = data;
         updateEventList();
+
+        // joint to lastest event(test mode)
         joinToEvent();
     });
 
+    // add new event started
     socket.on("start", function (data) {
         console.log("[on] start:" + JSON.stringify(data));
         events.push(data);
         updateEventList();
     });
 
+    // an event is ended
     socket.on("end", function (data) {
         console.log("[on] end:" + JSON.stringify(data));
         events = events.filter((event) => {
@@ -54,11 +61,14 @@ $(function () {
         updateEventList();
     });
 
+    // update event info
     socket.on("info", function (data) {
         console.log("[on] info:" + JSON.stringify(data));
 
+        // set eventInfo
         eventInfo = data;
 
+        // update UI
         $('#meeting-title').text(data.title);
         $('#event-title').text(data.eventTitle);
 
@@ -67,74 +77,107 @@ $(function () {
 		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
         $('#event-date').text(datestring);
 
+        // update headercolumns according to the race type
         updateTableHeaderColumns();
     });
 
-    // Whenever the server emits 'login', log the login message
+    // update horse info
     socket.on('horses', function (data) {
-        console.log("[on] horses:" + JSON.stringify(data));
+        console.log("[on] horses:" + data.length/* + JSON.stringify(data) */);
         for (let horse of data) {
             horses[horse.no] = horse;
         }
+
+        // update UI
+        updateLiveRankingList();
         updateRankingList();
         updateStartList();
-        updateLiveRankingList();
     });
 
+    // update rider info
     socket.on('riders', function (data) {
-        console.log("[on] riders:" + JSON.stringify(data));
+        console.log("[on] riders:" + data.length/* + JSON.stringify(data) */);
         for (let rider of data) {
             riders[rider.no] = rider;
         }
+
+        // update UI
+        updateLiveRankingList();
         updateRankingList();
         updateStartList();
-        updateLiveRankingList();
-
-        $('[data-toggle="tooltip"]').tooltip();
     });
 
+    // update startlist
     socket.on('startlist', function (data) {
-        console.log("[on] startlist:" + JSON.stringify(data));
+        console.log("[on] startlist:" + data.length/* + JSON.stringify(data) */);
         startlist = data;
+
+        // updateUI
         updateStartList();
     });
 
+    // update ranking info
     socket.on('ranking', function (data) {
-        console.log("[on] ranking:" + JSON.stringify(data));
+        console.log("[on] ranking:" + data.length/* + JSON.stringify(data) */);
+
+        // resort by ranking
         data.sort((a, b) => {
             return a.rank - b.rank;
         });
 
         rankings = data;
-        updateRankingList();
+
+        // Update UI
         updateLiveRankingList();
+        updateRankingList();
     });
 
+    // one ready to race
+    socket.on('ready', function(data) {
+        console.log("[on] ready:" + JSON.stringify(data));
+        // find position
+        let index = -1;
+        for(let i = 0 ; i < startlist.length ; i++) {
+            if(startlist[i].no === data.no) {
+                index = i;
+            }
+        }
+        // update atstart and atend
+        if(index !== -1) {
+            updateLiveAtStart(index + 1);
+            updateLiveAtFinish(index - 1);
+        }
+
+        // init realtime and update
+        realtime = { no: data.no };
+        setRuntimeList(true);
+    });
+
+    // get live race info
     socket.on('realtime', function (data) {
         console.log("[on] realtime:" + JSON.stringify(data));
         realtime = data;
 
-        // set position
+        // update except time
+        setRuntimeList(false);
+    });
+
+    // racing is started (every round)
+    socket.on('resume', function (data) {
+        console.log("[on] resume");
+
+        // update live tables
         let index = -1;
-        for(i = 0 ; i < startlist.length ; i++) {
+        for(let i = 0 ; i < startlist.length ; i++) {
             if(startlist[i].no === realtime.no) {
                 index = i;
             }
         }
-        realtime.pos = index;
-
-        // update except time
-        setRuntimeList(false);
-
         // update atstart and atend
-        if(realtime.pos !== -1) {
-            updateLiveAtStart(realtime.pos + 1);
-            updateLiveAtFinish(realtime.pos - 1);
+        if(index !== -1) {
+            updateLiveAtStart(index + 1);
+            updateLiveAtFinish(index - 1);
         }
-    });
-
-    socket.on('resume', function (data) {
-        console.log("[on] resume");
 
         // start rolling timer
         let started = 0, started_now = Date.now();
@@ -149,6 +192,7 @@ $(function () {
         }, 100);
     });
 
+    // racing is paused (every round)
     socket.on('pause', function (data) {
         console.log("[on] pause");
 
@@ -159,20 +203,30 @@ $(function () {
         setRuntimeList(true);
     });
 
+    // one player finished
     socket.on('final', function (data) {
         console.log("[on] final:" + JSON.stringify(data));
 
+        // update list
         let index = -1;
         for(i = 0 ; i < startlist.length ; i++) {
             if(startlist[i].no === data.no) {
                 index = i;
             }
         }
-
         if(index >= 0) {
             updateLiveAtStart(index + 1);
             updateLiveAtFinish(index);
         }
+
+        // update runtime with ranking
+        let ranking = rankings.find(function(ranking) {
+            return ranking.no === data.no;
+        });
+        if(ranking !== undefined) {
+            realtime.rank = ranking.rank;
+        }
+        setRuntimeList(true);
     });
 
     socket.on('disconnect', function () {
@@ -193,6 +247,22 @@ $(function () {
 
     ///////////////////////////////////////////////////
     // UI management function
+
+    function formatFloat(point, digit, round) {
+        digit = (digit > 5)?5:digit;
+        digit = (digit < 0)?0:digit;
+
+        let pos = Math.pow(10, digit);
+        if(round==='round') {
+            point = Math.round(point * pos);
+        } else if(round ==='ceil') {
+            point = Math.ceil(point * pos);
+        } else if(round==='floor') {
+            point = Math.floor(point * pos);
+        }
+        return (point / pos).toFixed(digit);
+    }
+
     function updateTableHeaderColumns() {
         // change header
         let headers = $(".table-scoreboard thead tr");
@@ -250,11 +320,14 @@ $(function () {
             number = startlist[i].no;
 
             ranking = rankings.find(function(ranking) {
-                return ranking.no == number;
+                return ranking.no === number;
             });
-            if(ranking !== undefined) {
-                addToRankingList("live-atfinish", row++, ranking);
+            if(ranking === undefined) {
+                // add empty ranking
+                ranking = { no: number, };
             }
+
+            addToRankingList("live-atfinish", row++, ranking);
         }
         clearRankingRemains("live-atfinish", row);
     }
@@ -285,13 +358,13 @@ $(function () {
             clearRuntimeList();
             return;
         }
-        tr.children("td:nth-child(1)").html((realtime.pos===undefined)?"&nbsp":realtime.pos + 1);
+        tr.children("td:nth-child(1)").html((realtime.rank===undefined)?"&nbsp":realtime.rank + ".");
         tr.children("td:nth-child(2)").html(realtime.no);
-        tr.children("td:nth-child(6)").html((realtime.point1 / 1000).toFixed(2));
-        tr.children("td:nth-child(8)").html((realtime.point2 / 1000).toFixed(2));
+        tr.children("td:nth-child(6)").html(realtime.point1 === undefined?"&nbsp":formatFloat(realtime.point1 / 1000, 2, 'floor'));
+        tr.children("td:nth-child(8)").html(realtime.point2 === undefined?"&nbsp":formatFloat(realtime.point2 / 1000, 2, 'floor'));
         if(fullupdate === true) {
-            tr.children("td:nth-child(7)").html((realtime.time1 / 1000).toFixed(2));
-            tr.children("td:nth-child(9)").html((realtime.time2 / 1000).toFixed(2));
+            tr.children("td:nth-child(7)").html(realtime.time1 === undefined?"&nbsp":formatFloat(realtime.time1 / 1000, 2, 'floor'));
+            tr.children("td:nth-child(9)").html(realtime.time2 === undefined?"&nbsp":formatFloat(realtime.time2 / 1000, 2, 'floor'));
         }
 
         var horse = horses[realtime.no];
@@ -304,7 +377,7 @@ $(function () {
         var rider = riders[realtime.no];
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
-            tr.children("td:nth-child(5)").css("background", "url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
+            tr.children("td:nth-child(5)").css("background", "#232323 url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
             tr.children("td:nth-child(5)").attr("data-toggle", "tooltip").attr("title", rider.nation);
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");
@@ -358,15 +431,15 @@ $(function () {
             }
         }
 
-        tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":ranking.rank);
+        tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":(ranking.rank + "."));
         tr.children("td:nth-child(2)").html(ranking.no);
 
-        tr.children("td:nth-child(6)").html(ranking.point1 === undefined?"&nbsp":(ranking.point1 / 1000).toFixed(2));
-        tr.children("td:nth-child(7)").html(ranking.time1 === undefined?"&nbsp":(ranking.time1 / 1000).toFixed(2));
+        tr.children("td:nth-child(6)").html(ranking.point1 === undefined?"&nbsp":formatFloat(ranking.point1 / 1000, 2, 'floor'));
+        tr.children("td:nth-child(7)").html(ranking.time1 === undefined?"&nbsp":formatFloat(ranking.time1 / 1000, 2, 'floor'));
 
         if(eventInfo.jumpoffNumber > 0) {
-            tr.children("td:nth-child(8)").html(ranking.point2 === undefined ? "&nbsp" : (ranking.point2 / 1000).toFixed(2));
-            tr.children("td:nth-child(9)").html(ranking.time2 === undefined ? "&nbsp" : (ranking.time2 / 1000).toFixed(2));
+            tr.children("td:nth-child(8)").html(ranking.point2 === undefined ? "&nbsp" : formatFloat(ranking.point2 / 1000, 2, 'floor'));
+            tr.children("td:nth-child(9)").html(ranking.time2 === undefined ? "&nbsp" : formatFloat(ranking.time2 / 1000, 2, 'floor'));
         }
 
         var horse = horses[ranking.no];
@@ -379,7 +452,7 @@ $(function () {
         var rider = riders[ranking.no];
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
-            tr.children("td:nth-child(5)").css("background", "url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
+            tr.children("td:nth-child(5)").css("background", "#232323 url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
             tr.children("td:nth-child(5)").attr("data-toggle", "tooltip").attr("title", rider.nation);
         } else {
             tr.children("td:nth-child(4)").html("&nbsp");

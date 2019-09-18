@@ -26,24 +26,24 @@ header {
 
 div.logo {
     height: 100%;
-    width: 50%;
+    width: 80%;
     background: url("images/logo.png") no-repeat left center;
     display: inline-block;
     float: left;
-    max-width: 160px;
+    max-width: 300px;
 }
 
 /*title with Event name & date*/
 
 div.title {
     display: block;
-    height: 50px;
+    height: 100px;
     padding: 10px;
 }
 
 .title div {
-    display: inline-block;
-    height: 100%;
+    display: block;
+    /*height: 100%;*/
 }
 .title h2 {
     color:#ffbf80;
@@ -56,11 +56,28 @@ div.title {
     display: inline-block;
     font-size: 1em;
     vertical-align: sub;
+    padding: 0px 15px;
+}
+
+
+.left-align {
+    display: inline;
+    float: left;
+    margin: auto;
+    /*height: 100%;*/
+}
+
+.right-align {
+    text-align: right;
+    display: inline;
+    float: right;
+    margin: auto;
+    /*height: 100%;*/
 }
 
 /*nav menus with live, startlist & ranking*/
 
-.nav-pills .nav-item {
+.nav-pills .nav-link {
     width: 150px;
     margin-right: 20px;
     text-align: center;
@@ -78,20 +95,6 @@ div.title {
     font-size: 1.2em;
 }
 
-.left-align {
-    display: inline;
-    float: left;
-    margin: auto;
-    height: 100%;
-}
-
-.right-align {
-    text-align: right;
-    display: inline;
-    float: right;
-    margin: auto;
-    height: 100%;
-}
 .subtitle {
     padding: 0px 50px 0px 5px;
     margin: 0px;
@@ -99,6 +102,11 @@ div.title {
     background-color: #4d4d4d;
     display: inline-block;
     border-radius: 5px 5px 0px 0px;
+}
+
+.subtitle.highlight {
+    background-color: #d6251e;
+    color: white;
 }
 
 .subboard {
@@ -157,6 +165,11 @@ td.flag {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.table-scoreboard.highlight thead th {
+    background-color: rgba(255, 92, 43, 0.92);
+}
+
 
 .table-scoreboard tbody tr td {
   color: white;

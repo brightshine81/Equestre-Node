@@ -87,10 +87,6 @@ io.on('connection', function (socket) {
                 console.log("[emit] socket:startlist");
                 socket.emit('startlist', event.startlist);
             }
-            if(event.final !== undefined) {
-                console.log("[emit] socket:final " + JSON.stringify(event.final));
-                socket.emit('final', event.final)
-            }
 
             if(event.realtime !== undefined) {
                 console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
@@ -100,9 +96,20 @@ io.on('connection', function (socket) {
             if(event.running) {
                 console.log("[emit] socket:resume ");
                 socket.emit('resume');
-            } else {
-                console.log("[emit] socket:pause ");
-                socket.emit('pause');
+            } else if(event.realtime !== undefined) {
+                let finalNo = 0;
+                if(event.finalNo !== undefined) {
+                    finalNo = event.finalNo;
+                }
+
+                // check whether current horse is finished
+                if(finalNo === event.realtime.no) {
+                    console.log("[emit] socket:final " + JSON.stringify(event.realtime));
+                    socket.emit('final', event.realtime)
+                } else {
+                    console.log("[emit] socket:ready ");
+                    socket.emit('ready', event.realtime);
+                }
             }
         }
     });
@@ -141,6 +148,8 @@ io.on('connection', function (socket) {
             processTimer1(obj);
         } else if (obj.cmd === 'info') {
             processInfo(obj);
+        } else if (obj.cmd === 'ready') {
+            processReady(obj);
         } else if (obj.cmd === 'horses') {
             processHorses(obj);
         } else if (obj.cmd === 'riders') {
@@ -183,10 +192,22 @@ io.on('connection', function (socket) {
 		console.log("processInfo: " + JSON.stringify(command));
 
 		try {
-            let eventId = await dbaction.findEvent(command.eventTitle, command.eventDate);
+		    // find the event from event list
+            let eventFound = events.find(function(event) {
+                return (event.info.eventTitle === command.eventTitle) && (event.info.eventDate === command.eventDate);
+            });
 
-            if(eventId === 0) {
-                eventId = await dbaction.addEvent(command);
+            let eventId = 0;
+
+            if(eventFound === undefined) {
+                // get event id from database
+                eventId = await dbaction.findEvent(command.eventTitle, command.eventDate);
+
+                if(eventId === 0) {
+                    eventId = await dbaction.addEvent(command);
+                }
+            } else {
+                eventId = eventFound.id;
             }
 
             socket.eventId = eventId;
@@ -200,16 +221,16 @@ io.on('connection', function (socket) {
                 console.log("new event pushed: ");
 
                 // alarm to all client
-
                 console.log("[emit] consumer:start " + event);
                 socket.to("consumer").emit('start', event );
             } else {
                 event.info = { ...event.info, ...command };
+                console.log("update event: " + event.info.toString());
 
                 // clear realtime information
                 event.realtime = {};
-                console.log("update event: " + event.info.toString());
             }
+
             // alarm to client
             console.log("[emit] " + eventId + ":info " + JSON.stringify(event.info));
             socket.to(eventId).emit('info', event.info);
@@ -349,6 +370,23 @@ io.on('connection', function (socket) {
         console.log("processStartlist finished.");
     }
 
+    function processReady(command)
+    {
+        // command.number;
+        // command.lane;
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        event.realtime = { no: command.no, lane: command.lane };
+
+        // alarm to client
+        console.log("[emit] " + event.id + ":ready " + JSON.stringify(event.realtime));
+        socket.to(event.id).emit('ready', event.realtime);
+    }
+
     // update state
     function processRun(command) {
         // command.number;
@@ -426,7 +464,7 @@ io.on('connection', function (socket) {
             return ;
         }
 
-        event.final = command;
+        // event.final = command;
 
         // alarm to client
         // console.log("[emit] " + event.id + ":final " + JSON.stringify(event.final));
@@ -470,6 +508,15 @@ io.on('connection', function (socket) {
         console.log("[emit] " + event.id + ":pause ");
         socket.to(event.id).emit('pause');
         event.running = false;
+
+        // check whether race is finished
+        if(event.info !== undefined && event.info.jumpoffNumber !== undefined) {
+            if((event.info.jumpoffNumber > 0 && event.realtime.lane === 2) || event.info.jumpoffNumber === 0) {
+                console.log("[emit] " + event.id + ":final ");
+                socket.to(event.id).emit('final', event.realtime);
+                event.finalNo = event.realtime.no;
+            }
+        }
     }
 
 
