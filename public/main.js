@@ -12,7 +12,10 @@ $(function () {
     var rankings = [];  // ranking list
     var realtime = {};  // live info
     var startlist = []; // startlist
+
     var rolling_timer;
+    var timer_running = false;
+
     var eventInfo = {}; // event.info
 
     // Prompt for setting a username
@@ -58,6 +61,7 @@ $(function () {
 
         // stop timer
         clearInterval(rolling_timer);
+        timer_running = false;
         setRuntimeList(true);
 
         events = events.filter((event) => {
@@ -163,7 +167,17 @@ $(function () {
         realtime = data;
         realtime.updateTick = Date.now();
         // update except time
-        setRuntimeList(false);
+        if(timer_running) {
+            setRuntimeList(false);
+        } else {
+            let curTime;
+            if(realtime.lane === 1) {
+                curTime = realtime.score.lane1.time;
+            } else {
+                curTime = realtime.score.lane2.time;
+            }
+            updateRuntimeTimer(realtime.lane, curTime);
+        }
     });
 
     // racing is started (every round)
@@ -184,25 +198,30 @@ $(function () {
         }
 
         // start rolling timer
-        let started = 0, tickFrom = Date.now();
-        if(realtime.lane === 1) {
-            started = realtime.score.lane1.time;
+        if(timer_running) {
+            console.log("timer already running");
         } else {
-            started = realtime.score.lane2.time;
-        }
-
-        rolling_timer = setInterval(function() {
-            if(Date.now() - tickFrom > 1000) {
-                tickFrom = realtime.updateTick;
-                if(realtime.lane === 1) {
-                    started = realtime.score.lane1.time;
-                } else {
-                    started = realtime.score.lane2.time;
-                }
-                console.log('timer synced: tickFrom=' + tickFrom + ", started=" + started);
+            let started = 0, tickFrom = Date.now();
+            if(realtime.lane === 1) {
+                started = realtime.score.lane1.time;
+            } else {
+                started = realtime.score.lane2.time;
             }
-            updateRuntimeTimer(realtime.lane, started + (Date.now() - tickFrom));
-        }, 100);
+
+            rolling_timer = setInterval(function() {
+                if(Date.now() - tickFrom > 2000) {
+                    tickFrom = realtime.updateTick;
+                    if(realtime.lane === 1) {
+                        started = realtime.score.lane1.time;
+                    } else {
+                        started = realtime.score.lane2.time;
+                    }
+                    console.log('timer synced: tickFrom=' + tickFrom + ", started=" + started);
+                }
+                updateRuntimeTimer(realtime.lane, started + (Date.now() - tickFrom));
+            }, 100);
+            timer_running = true;
+        }
     });
 
     // racing is paused (every round)
@@ -211,6 +230,7 @@ $(function () {
 
         // stop rolling timer
         clearInterval(rolling_timer);
+        timer_running = false;
 
         // full update
         if(data.finished === true) {
@@ -607,6 +627,8 @@ $(function () {
         socket.emit('unsubscribe', curEvent);
 
         clearInterval(rolling_timer);
+        timer_running = false;
+
         $('#error_finishevent').hide();
 
         $('#event_list').show();
