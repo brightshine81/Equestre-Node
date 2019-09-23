@@ -26,6 +26,25 @@
   </div>
 </header>
 <main>
+  <div id="event_list" class="page">
+    <div class="subboard">
+      <div class="subtitle">
+        <h3>Live Events</h3>
+      </div>
+      <table class="table table-scoreboard eventboard">
+        <thead>
+        <tr>
+          <th class="col-4">Title</th>
+          <th class="col-4">SubTitle</th>
+          <th class="col-2">Start Date</th>
+          <th class="col-2">End Date</th>
+        </tr>
+        </thead>
+        <tbody id="live-events">
+        </tbody>
+      </table>
+    </div>
+  </div>
   <div id="event_view" class="page">
   <nav class="navbar navbar-expand-sm navbar-dark navbar-dark">
   <ul class="nav nav-pills">
@@ -39,6 +58,9 @@
       <div id="nav-ranking" class="nav-link">Classements</div>
     </li>
   </ul>
+    <div class="dropdown pagelink">
+      <button id="goto-events" type="button" class="btn btn-secondary">Event List</button>
+    </div>
   </nav>
   <div class="title">
     <div class="clear"><h2 id="meeting-title" >&nbsp</h2></div>
@@ -130,15 +152,15 @@
     <table class="table table-scoreboard">
       <thead>
       <tr>
-        <th class="col-1">Rank</th>
-        <th class="col-1">Num</th>
-        <th class="col-2">Horse</th>
-        <th class="col-3">Rider</th>
+        <th class="col-1">Rang</th>
+        <th class="col-1">No:</th>
+        <th class="col-2">Cheval</th>
+        <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1 small-font">Round/Point</th>
-        <th class="col-1 small-font">Round/Time</th>
-        <th class="col-1 small-font">Jump-Off/Point</th>
-        <th class="col-1 small-font">Jump-Off/Time</th>
+        <th class="col-1 small-font">Mange/Points</th>
+        <th class="col-1 small-font">Mange/Temps</th>
+        <th class="col-1 small-font">Barrage/Points</th>
+        <th class="col-1 small-font">Barrage/Temps</th>
       </tr>
       </thead>
       <tbody id="live-ranking">
@@ -146,11 +168,6 @@
     </table>
   </div>
     <!--<button class="btn btn-success load">Load</button>-->
-  <div class="errors">
-  <div id="error_noevent" class="alert alert-danger" style="display: none;">
-    pas de Live-Timing pour le moment.
-  </div>
-  </div>
 </section>
   <section id="sec-startlist" style="display: none;">
     <div class="subboard">
@@ -194,6 +211,10 @@
     </table>
     </div>
   </section>
+  </div>
+  <div class="errors">
+    <div id="error_noevent" class="alert alert-danger" style="display: none;">pas de Live-Timing pour le moment.</div>
+    <div id="error_finishevent" class="alert alert-danger" style="display: none;">Event is finished.</div>
   </div>
 </main>
 <footer>© 2004-2019 FiveStars, Inc. All Rights Reserved.</footer>
