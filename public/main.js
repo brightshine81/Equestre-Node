@@ -1,7 +1,10 @@
 
 $(function () {
+    var FADETIMOUT      = 2000;
+
     // running events
     var events = [];
+    var curEvent = 0;
 
     // info of current event
     var horses = {};    // number-indexed map
@@ -40,9 +43,6 @@ $(function () {
         console.log("[on] events:" + JSON.stringify(data));
         events = data;
         updateEventList();
-
-        // joint to lastest event(test mode)
-        joinToEvent();
     });
 
     // add new event started
@@ -55,9 +55,17 @@ $(function () {
     // an event is ended
     socket.on("end", function (data) {
         console.log("[on] end:" + JSON.stringify(data));
+
+        // stop timer
+        clearInterval(rolling_timer);
+        setRuntimeList(true);
+
         events = events.filter((event) => {
             return event.id !== data;
         });
+
+        $('#error_finishevent').show();
+
         updateEventList();
     });
 
@@ -72,10 +80,7 @@ $(function () {
         $('#meeting-title').text(data.title);
         $('#event-title').text(data.eventTitle);
 
-		var d = new Date(data.eventDate);
-
-		var datestring = ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
-        $('#event-date').text(datestring);
+        $('#event-date').text(formatDate(data.eventDate));
 
         // update headercolumns according to the race type
         updateTableHeaderColumns();
@@ -138,7 +143,7 @@ $(function () {
         // find position
         let index = -1;
         for(let i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === data.no) {
+            if(startlist[i].no === realtime.no) {
                 index = i;
             }
         }
@@ -149,7 +154,6 @@ $(function () {
         }
 
         // init realtime and update
-        realtime = { no: data.no };
         setRuntimeList(true);
     });
 
@@ -157,7 +161,7 @@ $(function () {
     socket.on('realtime', function (data) {
         console.log("[on] realtime:" + JSON.stringify(data));
         realtime = data;
-
+        realtime.updateTick = Date.now();
         // update except time
         setRuntimeList(false);
     });
@@ -180,15 +184,24 @@ $(function () {
         }
 
         // start rolling timer
-        let started = 0, started_now = Date.now();
-        if(realtime.lane == 1) {
-            started = realtime.time1;
+        let started = 0, tickFrom = Date.now();
+        if(realtime.lane === 1) {
+            started = realtime.score.lane1.time;
         } else {
-            started = realtime.time2;
+            started = realtime.score.lane2.time;
         }
 
         rolling_timer = setInterval(function() {
-            updateRuntimeTimer(realtime.lane, started + (Date.now() - started_now));
+            if(Date.now() - tickFrom > 1000) {
+                tickFrom = realtime.updateTick;
+                if(realtime.lane === 1) {
+                    started = realtime.score.lane1.time;
+                } else {
+                    started = realtime.score.lane2.time;
+                }
+                console.log('timer synced: tickFrom=' + tickFrom + ", started=" + started);
+            }
+            updateRuntimeTimer(realtime.lane, started + (Date.now() - tickFrom));
         }, 100);
     });
 
@@ -200,7 +213,17 @@ $(function () {
         clearInterval(rolling_timer);
 
         // full update
-        setRuntimeList(true);
+        if(data.finished === true) {
+            setRuntimeList(true);
+        } else {
+            let started;
+            if(realtime.lane === 1) {
+                started = realtime.score.lane1.time;
+            } else {
+                started = realtime.score.lane2.time;
+            }
+            updateRuntimeTimer(realtime.lane, started);
+        }
     });
 
     // one player finished
@@ -210,7 +233,7 @@ $(function () {
         // update list
         let index = -1;
         for(i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === data.no) {
+            if(startlist[i].no === realtime.no) {
                 index = i;
             }
         }
@@ -221,7 +244,7 @@ $(function () {
 
         // update runtime with ranking
         let ranking = rankings.find(function(ranking) {
-            return ranking.no === data.no;
+            return ranking.no === realtime.no;
         });
         if(ranking !== undefined) {
             realtime.rank = ranking.rank;
@@ -263,21 +286,61 @@ $(function () {
         return (point / pos).toFixed(digit);
     }
 
+    function formatPoint(score, detail) {
+        if(score.point === undefined)
+            return "&nbsp";
+
+        let labels = ["Classified", "Not Present", "Not Started", "Retired", "Eliminated", "Off-course", "Disqualified"];
+        if(score.point === undefined)
+            return "&nbsp";
+
+        if(score.point < 0) {
+            let index = Math.abs(score.point) - 1;
+            if(index > 0 && index <= 6) {
+                return labels[index];
+            }
+        }
+
+        let label = formatFloat(score.point / 1000, 2, 'floor');
+        if(detail && score.pointPenalty !== 0) {
+            label += "(+" + formatFloat(score.pointPenalty / 1000, 2, 'floor') + ")";
+        }
+        return label;
+    }
+
+    function formatTime(score, detail) {
+        if(score.time === undefined)
+            return "&nbsp";
+
+        let label = formatFloat(Math.abs(score.time) / 1000, 2, 'floor');
+        if(detail && score.timePenalty !== 0) {
+            label += "(+" + formatFloat(Math.abs(score.timePenalty) / 1000, 2, 'floor') + ")";
+        }
+        return label;
+    }
+
+    function formatDate(dateString) {
+        var d = new Date(dateString);
+
+        return ("0" + d.getDate()).slice(-2) + "." + ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
+    }
+
     function updateTableHeaderColumns() {
         // change header
         let headers = $(".table-scoreboard thead tr");
 
          if(eventInfo.jumpoffNumber > 0) {
-             headers.children("th:nth-child(6)").removeClass("col-2").addClass("col-1");
-             headers.children("th:nth-child(7)").removeClass("col-2").addClass("col-1");
-             headers.children("th:nth-child(8)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
-             headers.children("th:nth-child(9)").removeClass("col-2").addClass("col-1").css("display", "inline-block");
+             headers.children("th:nth-child(6)").removeClass("col-2").addClass("col-1").addClass("small-font");
+             headers.children("th:nth-child(7)").removeClass("col-2").addClass("col-1").addClass("small-font");
+             headers.children("th:nth-child(8)").removeClass("col-2").addClass("col-1").css("display", "inline-block").addClass("small-font");
+             headers.children("th:nth-child(9)").removeClass("col-2").addClass("col-1").css("display", "inline-block").addClass("small-font");
          } else {
-             headers.children("th:nth-child(6)").removeClass("col-1").addClass("col-2");
-             headers.children("th:nth-child(7)").removeClass("col-1").addClass("col-2");
-             headers.children("th:nth-child(8)").css("display", "none");
-             headers.children("th:nth-child(9)").css("display", "none");
+             headers.children("th:nth-child(6)").removeClass("col-1").addClass("col-2").removeClass("small-font");
+             headers.children("th:nth-child(7)").removeClass("col-1").addClass("col-2").removeClass("small-font");
+             headers.children("th:nth-child(8)").css("display", "none").removeClass("small-font");
+             headers.children("th:nth-child(9)").css("display", "none").removeClass("small-font");
          }
+
 
         // realtime
         var tr = $('#live-realtime tr:first');
@@ -294,10 +357,14 @@ $(function () {
             tr.children("td:nth-child(9)").css("display", "none");
         }
 
+
+
     }
 
     //  fill the list from index to the atstart list
     function updateLiveAtStart(index) {
+        clearRanking("live-atstart");
+
         let limit = (index + 3 < startlist.length)?(index + 3):startlist.length;
 
         var row = 1;
@@ -306,11 +373,13 @@ $(function () {
             startlist[i].rank = i + 1; // it is pos value
             addToRankingList("live-atstart", row++, startlist[i]);
         }
-        clearRankingRemains("live-atstart", row);
+        // clearRankingRemains("live-atstart", row);
     }
 
     // fill the rank from index to the atstart list
     function updateLiveAtFinish(index) {
+        clearRanking("live-atfinish");
+
         let limit = (index - 3 >= 0)?(index - 3):-1;
 
         var row = 1;
@@ -324,29 +393,31 @@ $(function () {
             });
             if(ranking === undefined) {
                 // add empty ranking
-                ranking = { no: number, };
+                ranking = { no: number, score: { lane1: {}, lane2: {} }};
             }
 
             addToRankingList("live-atfinish", row++, ranking);
         }
-        clearRankingRemains("live-atfinish", row);
+        // clearRankingRemains("live-atfinish", row);
     }
 
     function updateLiveRankingList() {
+        clearRanking("live-ranking");
         var index = 1;
         for (let ranking of rankings) {
             addToRankingList("live-ranking", index++, ranking);
         }
-        clearRankingRemains("live-ranking", index);
+        // clearRankingRemains("live-ranking", index);
     }
 
     function updateRuntimeTimer(lane, value)
     {
+        let label = formatFloat(Math.abs(value) / 1000, 1, 'floor');
         var tr = $('#live-realtime tr');
-        if(lane == 1) {
-            tr.children("td:nth-child(7)").html((value / 1000).toFixed(1));
+        if(lane === 1) {
+            tr.children("td:nth-child(7)").html(label);
         } else {
-            tr.children("td:nth-child(9)").html((value / 1000).toFixed(1));
+            tr.children("td:nth-child(9)").html(label);
         }
     }
 
@@ -360,11 +431,11 @@ $(function () {
         }
         tr.children("td:nth-child(1)").html((realtime.rank===undefined)?"&nbsp":realtime.rank + ".");
         tr.children("td:nth-child(2)").html(realtime.no);
-        tr.children("td:nth-child(6)").html(realtime.point1 === undefined?"&nbsp":formatFloat(realtime.point1 / 1000, 2, 'floor'));
-        tr.children("td:nth-child(8)").html(realtime.point2 === undefined?"&nbsp":formatFloat(realtime.point2 / 1000, 2, 'floor'));
+        tr.children("td:nth-child(6)").html(formatPoint(realtime.score.lane1, false));
+        tr.children("td:nth-child(8)").html(formatPoint(realtime.score.lane2, false));
         if(fullupdate === true) {
-            tr.children("td:nth-child(7)").html(realtime.time1 === undefined?"&nbsp":formatFloat(realtime.time1 / 1000, 2, 'floor'));
-            tr.children("td:nth-child(9)").html(realtime.time2 === undefined?"&nbsp":formatFloat(realtime.time2 / 1000, 2, 'floor'));
+            tr.children("td:nth-child(7)").html(formatTime(realtime.score.lane1, false));
+            tr.children("td:nth-child(9)").html(formatTime(realtime.score.lane2, false));
         }
 
         var horse = horses[realtime.no];
@@ -392,20 +463,24 @@ $(function () {
 
     function updateStartList()
     {
+        clearRanking("startlist");
+
         var index = 1;
         for (let i = 0 ; i < startlist.length ; i++) {
             startlist[i].rank = i + 1; // it is pos value
             addToRankingList("startlist", index++, startlist[i]);
         }
-        clearRankingRemains("startlist", index);
+        // clearRankingRemains("startlist", index);
     }
 
     function updateRankingList() {
+        clearRanking("ranking");
+
         var index = 1;
         for (let ranking of rankings) {
             addToRankingList("ranking", index++, ranking);
         }
-        clearRankingRemains("ranking", index);
+        // clearRankingRemains("ranking", index);
     }
 
     function addToRankingList(tableId, i, ranking) {
@@ -434,12 +509,12 @@ $(function () {
         tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":(ranking.rank + "."));
         tr.children("td:nth-child(2)").html(ranking.no);
 
-        tr.children("td:nth-child(6)").html(ranking.point1 === undefined?"&nbsp":formatFloat(ranking.point1 / 1000, 2, 'floor'));
-        tr.children("td:nth-child(7)").html(ranking.time1 === undefined?"&nbsp":formatFloat(ranking.time1 / 1000, 2, 'floor'));
+        tr.children("td:nth-child(6)").html(formatPoint(ranking.score.lane1, true));
+        tr.children("td:nth-child(7)").html(formatTime(ranking.score.lane1, true));
 
         if(eventInfo.jumpoffNumber > 0) {
-            tr.children("td:nth-child(8)").html(ranking.point2 === undefined ? "&nbsp" : formatFloat(ranking.point2 / 1000, 2, 'floor'));
-            tr.children("td:nth-child(9)").html(ranking.time2 === undefined ? "&nbsp" : formatFloat(ranking.time2 / 1000, 2, 'floor'));
+            tr.children("td:nth-child(8)").html(formatPoint(ranking.score.lane2, true));
+            tr.children("td:nth-child(9)").html(formatTime(ranking.score.lane2, true));
         }
 
         var horse = horses[ranking.no];
@@ -458,6 +533,18 @@ $(function () {
             tr.children("td:nth-child(4)").html("&nbsp");
             tr.children("td:nth-child(5)").html("&nbsp");
         }
+
+        tr.children().each(function () {
+            if(this.scrollWidth > $(this).outerWidth()) {
+                $(this).addClass("small-font");
+            } else {
+                $(this).removeClass("small-font");
+            }
+        });
+    }
+
+    function clearRanking(tableId) {
+        $('#' + tableId).html("");
     }
 
     function clearRankingRemains(tableId, count) {
@@ -471,19 +558,63 @@ $(function () {
     }
 
     function updateEventList() {
-        for(event of events) {
+        $('#live-events').html('');
 
+        for(event of events) {
+            $('#live-events').append($('<tr>'));
+            tr = $('#live-events tr:last');
+            tr.append($('<td>').addClass("col-4 left").html("&nbsp"));
+            tr.append($('<td>').addClass("col-4 left").html("&nbsp"));
+            tr.append($('<td>').addClass("col-2 center").html("&nbsp"));
+            tr.append($('<td>').addClass("col-2 center").html("&nbsp"));
+
+            tr.children("td:nth-child(1)").html(event.info.title);
+            tr.children("td:nth-child(2)").html(event.info.eventTitle);
+            tr.children("td:nth-child(3)").html(formatDate(event.info.startDate));
+            tr.children("td:nth-child(4)").html(formatDate(event.info.endDate));
+
+            tr.attr("data-ref", event.id);
+
+            tr.click(function() {
+                evendId = $(this).attr("data-ref");
+                joinToEvent(evendId);
+            });
         }
     }
 
-    function joinToEvent() {
-        if(events.length == 0) {
-            $("#noevent").show();
+    function joinToEvent(eventId) {
+        let event = events.find( (event) => {
+            return (event.id == eventId);
+        });
+
+        if(event === undefined) {
+            $("#error_noevent").show();
             return ;
         }
-        $("#noevent").hide();
-        socket.emit("subscribe", events[events.length - 1].id);
+
+        $("#error_noevent").hide();
+        $("#error_finishevent").hide();
+
+        socket.emit("subscribe", eventId);
+        curEvent = eventId;
+
+        $('#event_list').hide();
+        $('#event_view').show();
     }
+
+    // goto event list
+    $("#goto-events").click(function () {
+        socket.emit('unsubscribe', curEvent);
+
+        clearInterval(rolling_timer);
+        $('#error_finishevent').hide();
+
+        $('#event_list').show();
+        $('#event_view').hide();
+    });
+
+    $('#event_view').hide();
+    $('#event_list').show();
 });
 
 $(".nav .nav-link").click(function() {

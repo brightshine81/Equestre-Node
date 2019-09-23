@@ -129,8 +129,8 @@ exports.deleteRankings = function(eventId) {
 exports.addRanking = function(eventId, rank) {
     var deferred = Q.defer();
 
-    dbconnection.query('INSERT INTO tb_ranks(eventId, number, rank, point1, pointPlus1, time1, point2, pointPlus2, time2, jumpOff) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [eventId, rank.no, rank.rank, rank.point1, rank.pointPlus1, rank.time1, rank.point2, rank.pointPlus2, rank.time2, rank.jumpOff?1:0],
+    dbconnection.query('INSERT INTO tb_ranks(eventId, number, rank, point1, pointPlus1, time1, timePlus1, point2, pointPlus2, time2, timePlus2, jumpOff) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [eventId, rank.no, rank.rank, rank.point1, rank.pointPlus1, rank.time1, rank.timePlus1, rank.point2, rank.pointPlus2, rank.time2, rank.timePlus2, rank.jumpOff?1:0],
         function (err, results, fields) {
             if(err) {
                 deferred.reject(new Error(err));

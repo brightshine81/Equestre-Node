@@ -14,13 +14,27 @@ server.listen(port, function () {
     console.log('Server listening at port %d', port);
 });
 
-
-
-
 // Routing
 app.use(express.static(__dirname + '/public'));
 
 // current running events
+/*
+    each event has the following status variables
+    {
+        id: <eventId>           // eventId from database
+        info: {},               // from <info> command
+        riders: [{}]            // from <riders> command
+        horses: [{}]            // from <horses> command
+        ranking: [{}]           // from <ranking> command
+        startlist: []           // from <startlist> command
+        realtime: {
+            no, lane, startTime, score: { lane1: { time, timePenalty, point, pointPenalty }, lane2: { time, timePenalty, point, pointPenalty } }
+        }                       // updated from <run> <timer1> <dnf> <final>
+        finalNo:                // from <final> command
+        running:                // set true from <run>, set false from <final>
+        paused:                 // set from <run>
+    }
+ */
 var events = [];
 
 io.on('connection', function (socket) {
@@ -47,7 +61,7 @@ io.on('connection', function (socket) {
         } else {
             // findout the event
             let event = events.find((event) => {
-                return event.id === room;
+                return event.id == room;
             });
 
             if(event === undefined) {
@@ -70,51 +84,60 @@ io.on('connection', function (socket) {
             socket.eventIdJoint = event.id;
 
             // send the information
-            if(event.info !== undefined) {
-                console.log("[emit] socket:info");
-                socket.emit('info', event.info);
-            }
-            if(event.horses !== undefined) {
-                console.log("[emit] socket:horses");
-                socket.emit('horses', event.horses);
-            }
-            if(event.riders !== undefined) {
-                console.log("[emit] socket:riders");
-                socket.emit('riders', event.riders);
-            }
-            if(event.ranking !== undefined) {
-                console.log("[emit] socket:ranking");
-                socket.emit('ranking', event.ranking);
-            }
-            if(event.startlist !== undefined) {
-                console.log("[emit] socket:startlist");
-                socket.emit('startlist', event.startlist);
-            }
+            console.log("[emit] socket:info");
+            socket.emit('info', event.info);
 
-            if(event.realtime !== undefined) {
-                console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
-                socket.emit('realtime', event.realtime);
-            }
+            console.log("[emit] socket:horses");
+            socket.emit('horses', event.horses);
+
+            console.log("[emit] socket:riders");
+            socket.emit('riders', event.riders);
+
+            console.log("[emit] socket:ranking");
+            socket.emit('ranking', event.ranking);
+
+            console.log("[emit] socket:startlist");
+            socket.emit('startlist', event.startlist);
+
+            console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
+            socket.emit('realtime', event.realtime);
 
             if(event.running) {
                 console.log("[emit] socket:resume ");
                 socket.emit('resume');
-            } else if(event.realtime !== undefined) {
-                let finalNo = 0;
-                if(event.finalNo !== undefined) {
-                    finalNo = event.finalNo;
-                }
-
+            } else {
                 // check whether current horse is finished
-                if(finalNo === event.realtime.no) {
-                    console.log("[emit] socket:final " + JSON.stringify(event.realtime));
-                    socket.emit('final', event.realtime)
+                if(event.finalNo === event.realtime.no) {
+                    console.log("[emit] socket:final ");
+                    socket.emit('final')
                 } else {
                     console.log("[emit] socket:ready ");
-                    socket.emit('ready', event.realtime);
+                    socket.emit('ready');
                 }
             }
         }
+    });
+
+    socket.on('unsubscribe', function (room) {
+        roomId = '' + room;
+        console.log("unsubscribe: " + roomId);
+
+        let rooms = Object.keys(socket.rooms);
+        console.log("rooms=" + JSON.stringify(rooms));
+
+        if (rooms.includes(roomId) === false) {
+            console.error("cannot find room");
+            return;
+        }
+
+        if(socket.eventIdJoint != room) {
+            console.error("cannot unsubscribe from " + room);
+            return;
+        }
+
+        console.log("unsubscribe from: " + room);
+        socket.leave(room);
+        socket.eventIdJoint = undefined;
     });
 
     socket.on('push', function (msg) {
@@ -145,10 +168,12 @@ io.on('connection', function (socket) {
             processFinal(obj);
         } else if (obj.cmd === 'run') {
             processRun(obj);
-        } else if (obj.cmd === 'sync') {
-            processSync(obj);
+        // } else if (obj.cmd === 'sync') {
+        //     processSync(obj);
         } else if (obj.cmd === 'timer1') {
             processTimer1(obj);
+        } else if (obj.cmd === 'dnf') {
+            processDNF(obj);
         } else if (obj.cmd === 'info') {
             processInfo(obj);
         } else if (obj.cmd === 'ready') {
@@ -187,11 +212,8 @@ io.on('connection', function (socket) {
 
     // query and save to database and get eventId
     async function processInfo(command) {
-        // command.title
-        // command.eventTitle
-        // command.startDate
-        // command.endDate
-        // command.eventDate
+        // command { title, eventTitle, startDate, endDate, eventDate }
+
 		console.log("processInfo: " + JSON.stringify(command));
 
 		try {
@@ -219,20 +241,18 @@ io.on('connection', function (socket) {
             let event = getSocketEvent();
 
             if(event === false) {
-                event = {id: eventId, info: command};
+                // initialize event
+                event = { id: eventId, info: command, riders: [], horses: [], ranking: [], startlist: [], realtime: {}, finalNo: 0, running: false, paused: false, };
                 events.push(event);
                 console.log("new event pushed: ");
 
                 // alarm to all client
-                console.log("[emit] consumer:start " + event);
+                console.log("[emit] consumer:start " + JSON.stringify(event));
                 socket.to("consumer").emit('start', event );
             } else {
                 event.info = { ...event.info, ...command };
                 console.log("update event: " + event.info.toString());
-
-                // clear realtime information
-                event.realtime = {};
-            }
+           }
 
             // alarm to client
             console.log("[emit] " + eventId + ":info " + JSON.stringify(event.info));
@@ -330,7 +350,16 @@ io.on('connection', function (socket) {
         }
 
         // save to status
-        event.ranking = command.list;
+        event.ranking = [];
+        for(let rank of command.list) {
+            let entry = { no: rank.no, rank: rank.rank, score:
+                    {   lane1: { time: rank.time1, timePenalty: rank.timePlus1, point: rank.point1, pointPenalty: rank.pointPlus1 },
+                        lane2: { time: rank.time2, timePenalty: rank.timePlus2, point: rank.point2, pointPenalty: rank.pointPlus2 }
+                    }
+            };
+            event.ranking.push(entry);
+        }
+
         // alarm to client
         console.log("[emit] " + event.id + ":ranking ");
         socket.to(event.id).emit('ranking', event.ranking);
@@ -347,9 +376,7 @@ io.on('connection', function (socket) {
                     affected++;
                 }
             }
-
             console.log("ranking command: inserted=" + affected);
-
         } catch(err) {
             console.log("horses command failed: " + JSON.stringify(err));
         }
@@ -365,7 +392,13 @@ io.on('connection', function (socket) {
         }
 
         // save to status
-        event.startlist = command.list;
+        // save to status
+        event.startlist = [];
+        for(let startentry of command.list) {
+            let entry = { no: startentry.no, score: {   lane1: { }, lane2: { } } };
+            event.startlist.push(entry);
+        }
+
         // alarm to client
         console.log("[emit] " + event.id + ":startlist ");
         socket.to(event.id).emit('startlist', event.startlist);
@@ -375,91 +408,119 @@ io.on('connection', function (socket) {
 
     function processReady(command)
     {
-        // command.number;
-        // command.lane;
+        // command { number, lane };
         let event = getSocketEvent();
         if(event === false) {
             console.error("run command: failed.");
             return ;
         }
 
-        event.realtime = { no: command.no, lane: command.lane };
+        // initialize the real time
+        event.realtime = { no: command.no, lane: command.lane, startTime: 0, score: { lane1: {}, lane2: {} } };
+
+        console.log("[emit] " + event.id + ":realtime(ready) " + JSON.stringify(event.realtime));
+        socket.to(event.id).emit('realtime', event.realtime);
 
         // alarm to client
-        console.log("[emit] " + event.id + ":ready " + JSON.stringify(event.realtime));
-        socket.to(event.id).emit('ready', event.realtime);
+        console.log("[emit] " + event.id + ":ready ");
+        socket.to(event.id).emit('ready');
     }
 
     // update state
     function processRun(command) {
-        // command.number;
-        // command.lane;
-        // command.point;
-        // command.startTime;
+        // command { number, lane, point, time, startTime, pauseTime }
 
         let event = getSocketEvent();
         if(event === false) {
-            console.error("run command: failed.");
+            console.error("run command: cannot find event.");
+            return ;
+        }
+
+        if(event.realtime.no === undefined) {
+            console.error("run command: there is no number.");
             return ;
         }
 
         // update status
-        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
+        let updated = {};
         updated.no = command.no;
         updated.lane = command.lane;
+        updated.startTime = command.startTime;
+        updated.score = event.realtime.score;
+
         if(updated.lane === 1) {
-            updated.point1 = command.point;
+            record = updated.score.lane1;
         } else {
-            updated.point2 = command.point;
+            record = updated.score.lane2;
         }
 
-        event.realtime = { ...initial, ...event.realtime, ...updated };
+        record.point = command.point;
+        record.time = command.time;
+        if(command.pauseTime !== 0) {
+            record.time = command.pauseTime;
+        }
+
+        event.realtime = { ...event.realtime, ...updated };
 
         // alarm to client
         console.log("[emit] " + event.id + ":realtime(run) " + JSON.stringify(event.realtime));
         socket.to(event.id).emit('realtime', event.realtime);
 
-        if(event.running === undefined || event.running === false) {
+        if(event.running === false) {
             event.running = true;
+            console.log("[emit] " + event.id + ":resume ");
+            socket.to(event.id).emit('resume');
+        }
+
+        // process pause
+        if(command.pauseTime !== 0 && event.paused === false) {
+            event.paused = true;
+            console.log("[emit] " + event.id + ":pause ");
+            socket.to(event.id).emit('pause', { finished: false });
+        } else if(command.pauseTime === 0 && event.paused === true){
+            event.paused = false;
+            // start timer...
             console.log("[emit] " + event.id + ":resume ");
             socket.to(event.id).emit('resume');
         }
     }
 
-    function processSync(command) {
-        // command.number;
-        // command.lane;
-        // command.time;
-        // command.curTime;
-
-        let event = getSocketEvent();
-        if(event === false) {
-            console.error("run command: failed.");
-            return ;
-        }
-
-        // update status
-        let updated = {}, initial = { point1: 0, time1: 0, point2: 0, time2: 0 };
-        updated.no = command.no;
-        updated.lane = command.lane;
-        if(updated.lane === 1) {
-            updated.time1 = command.time;
-        } else {
-            updated.time2 = command.time;
-        }
-
-        event.realtime = { ...initial, ...event.realtime, ...updated };
-
-        // alarm to client
-        console.log("[emit] " + event.id + ":realtime(sync) " + JSON.stringify(event.realtime));
-        socket.to(event.id).emit('realtime', event.realtime);
-    }
+    // function processSync(command) {
+    //     // command.number;
+    //     // command.lane;
+    //     // command.time;
+    //     // command.curTime;
+    //
+    //     let event = getSocketEvent();
+    //     if(event === false) {
+    //         console.error("run command: failed.");
+    //         return ;
+    //     }
+    //
+    //     // update status
+    //     let updated = {};
+    //     updated.no = command.no;
+    //     updated.lane = command.lane;
+    //     if(updated.lane === 1) {
+    //         updated.time1 = command.time;
+    //     } else {
+    //         updated.time2 = command.time;
+    //     }
+    //
+    //     event.realtime = { ...event.realtime, ...updated };
+    //
+    //     // alarm to client
+    //     console.log("[emit] " + event.id + ":realtime(sync) " + JSON.stringify(event.realtime));
+    //     socket.to(event.id).emit('realtime', event.realtime);
+    // }
 
     function processTimer1(command) {
         // command.number;
         // command.lane;
         // command.time;
+        // command.timePenalty;
         // command.point;
+        // command.pointPenalty;
 
         let event = getSocketEvent();
         if(event === false) {
@@ -467,15 +528,37 @@ io.on('connection', function (socket) {
             return ;
         }
 
-        // event.final = command;
+        if(event.realtime.no === undefined) {
+            console.error("run command: there is no number.");
+            return ;
+        }
+
+        // update realtime status
+        let updated = {};
+        updated.no = command.no;
+        updated.lane = command.lane;
+        updated.score = event.realtime.score;
+
+        let record;
+        if(updated.lane === 1) {
+            record = updated.score.lane1;
+        } else {
+            record = updated.score.lane2;
+        }
+
+        record.time = command.time + command.timePenalty;
+        record.timePenalty = command.timePenalty;
+        record.point = command.point + command.pointPenalty;
+        record.pointPenalty = command.pointPenalty;
+
+        event.realtime = { ...event.realtime, ...updated };
 
         // alarm to client
-        // console.log("[emit] " + event.id + ":final " + JSON.stringify(event.final));
-        // socket.to(event.id).emit('final', event.final);
-    }
+        console.log("[emit] " + event.id + ":realtime(final) " + JSON.stringify(event.realtime));
+        socket.to(event.id).emit('realtime', event.realtime);
 
-    function processAtStart(command) {
-        // command.list
+        console.log("[emit] " + event.id + ":final ");
+        socket.to(event.id).emit('final');
     }
 
     function processFinal(command) {
@@ -490,17 +573,25 @@ io.on('connection', function (socket) {
             return ;
         }
 
+        if(event.realtime.no === undefined) {
+            console.error("run command: there is no number.");
+            return ;
+        }
+
         // update status
         let updated = {};
         updated.no = command.no;
         updated.lane = command.lane;
+        updated.score = event.realtime.score;
+
+        let record;
         if(updated.lane === 1) {
-            updated.time1 = command.time;
-            updated.point1 = command.point;
+            record = updated.score.lane1;
         } else {
-            updated.time2 = command.time;
-            updated.point2 = command.point;
+            record = updated.score.lane2;
         }
+        record.time = command.time;
+        record.point = command.point;
 
         event.realtime = { ...event.realtime, ...updated };
 
@@ -509,17 +600,60 @@ io.on('connection', function (socket) {
         socket.to(event.id).emit('realtime', event.realtime);
 
         console.log("[emit] " + event.id + ":pause ");
-        socket.to(event.id).emit('pause');
+        socket.to(event.id).emit('pause', { finished: true });
         event.running = false;
 
         // check whether race is finished
-        if(event.info !== undefined && event.info.jumpoffNumber !== undefined) {
+        if(event.info.jumpoffNumber !== undefined) {
             if((event.info.jumpoffNumber > 0 && event.realtime.lane === 2) || event.info.jumpoffNumber === 0) {
                 console.log("[emit] " + event.id + ":final ");
                 socket.to(event.id).emit('final', event.realtime);
                 event.finalNo = event.realtime.no;
             }
         }
+    }
+
+    function processDNF(command) {
+        // command { no, code }
+        let event = getSocketEvent();
+        if(event === false) {
+            console.error("run command: failed.");
+            return ;
+        }
+
+        if(event.realtime.no === undefined) {
+            console.error("run command: there is no number.");
+            return ;
+        }
+
+        // update status
+        let updated = {};
+        updated.no = command.no;
+        updated.lane = event.realtime.lane;
+        updated.score = event.realtime.score;
+
+        let record;
+        if(updated.lane === 1) {
+            record = updated.score.lane1;
+        } else {
+            record = updated.score.lane2;
+        }
+        record.point = -command.code;
+
+        event.realtime = { ...event.realtime, ...updated };
+
+        // alarm to client
+        console.log("[emit] " + event.id + ":realtime(dnf) " + JSON.stringify(event.realtime));
+        socket.to(event.id).emit('realtime', event.realtime);
+
+        // paused
+        console.log("[emit] " + event.id + ":pause ");
+        socket.to(event.id).emit('pause', { finished: true });
+        event.running = false;
+    }
+
+    function processAtStart(command) {
+        // command.list
     }
 
 

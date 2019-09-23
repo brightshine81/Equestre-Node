@@ -26,6 +26,7 @@
   </div>
 </header>
 <main>
+  <div id="event_view" class="page">
   <nav class="navbar navbar-expand-sm navbar-dark navbar-dark">
   <ul class="nav nav-pills">
     <li class="nav-item">
@@ -39,11 +40,11 @@
     </li>
   </ul>
   </nav>
-<div class="title">
-  <div class="left-align"><h2 id="meeting-title" >&nbsp</h2></div>
-  <div class="left-align"><h4 id="event-title" >&nbsp</h4></div>
-  <div class="right-align"><h2 id="event-date" >&nbsp</h2></div>
-</div>
+  <div class="title">
+    <div class="clear"><h2 id="meeting-title" >&nbsp</h2></div>
+    <div class="right-align"><h2 id="event-date" >&nbsp</h2></div>
+    <div class="clear"><h4 id="event-title" >&nbsp</h4></div>
+  </div>
 <section id="sec-live">
   <div class="subboard">
     <div class="subtitle">
@@ -57,10 +58,10 @@
         <th class="col-2">Cheval</th>
         <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Mange/Points</th>
-        <th class="col-1">Mange/Temps</th>
-        <th class="col-1">Barrage/Points</th>
-        <th class="col-1">Barrage/Temps</th>
+        <th class="col-1 small-font">&nbsp;</th>
+        <th class="col-1 small-font">&nbsp;</th>
+        <th class="col-1 small-font">&nbsp;</th>
+        <th class="col-1 small-font">&nbsp;</th>
       </tr>
       </thead>
       <tbody id="live-atstart">
@@ -79,10 +80,10 @@
             <th class="col-2">Cheval</th>
             <th class="col-3">Cavallier</th>
             <th class="col-1">Nation</th>
-            <th class="col-1">Mange/Points</th>
-            <th class="col-1">Mange/Temps</th>
-            <th class="col-1">Barrage/Points</th>
-            <th class="col-1">Barrage/Temps</th>
+            <th class="col-1 small-font">Mange/Points</th>
+            <th class="col-1 small-font">Mange/Temps</th>
+            <th class="col-1 small-font">Barrage/Points</th>
+            <th class="col-1 small-font">Barrage/Temps</th>
           </tr>
         </thead>
         <tbody id="live-realtime">
@@ -112,10 +113,10 @@
             <th class="col-2">Cheval</th>
             <th class="col-3">Cavallier</th>
             <th class="col-1">Nation</th>
-            <th class="col-1">Mange/Points</th>
-            <th class="col-1">Mange/Temps</th>
-            <th class="col-1">Barrage/Points</th>
-            <th class="col-1">Barrage/Temps</th>
+            <th class="col-1 small-font">Mange/Points</th>
+            <th class="col-1 small-font">Mange/Temps</th>
+            <th class="col-1 small-font">Barrage/Points</th>
+            <th class="col-1 small-font">Barrage/Temps</th>
           </tr>
         </thead>
         <tbody id="live-atfinish">
@@ -134,10 +135,10 @@
         <th class="col-2">Horse</th>
         <th class="col-3">Rider</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Round/Point</th>
-        <th class="col-1">Round/Time</th>
-        <th class="col-1">Jump-Off/Point</th>
-        <th class="col-1">Jump-Off/Time</th>
+        <th class="col-1 small-font">Round/Point</th>
+        <th class="col-1 small-font">Round/Time</th>
+        <th class="col-1 small-font">Jump-Off/Point</th>
+        <th class="col-1 small-font">Jump-Off/Time</th>
       </tr>
       </thead>
       <tbody id="live-ranking">
@@ -145,8 +146,10 @@
     </table>
   </div>
     <!--<button class="btn btn-success load">Load</button>-->
-  <div id="noevent" class="alert alert-danger" style="display: none;">
+  <div class="errors">
+  <div id="error_noevent" class="alert alert-danger" style="display: none;">
     pas de Live-Timing pour le moment.
+  </div>
   </div>
 </section>
   <section id="sec-startlist" style="display: none;">
@@ -159,10 +162,10 @@
         <th class="col-2">Cheval</th>
         <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Mange/Points</th>
-        <th class="col-1">Mange/Temps</th>
-        <th class="col-1">Barrage/Points</th>
-        <th class="col-1">Barrage/Temps</th>
+        <th class="col-1">&nbsp;</th>
+        <th class="col-1">&nbsp;</th>
+        <th class="col-1">&nbsp;</th>
+        <th class="col-1">&nbsp;</th>
       </tr>
       </thead>
       <tbody id="startlist">
@@ -180,10 +183,10 @@
         <th class="col-2">Cheval</th>
         <th class="col-3">Cavallier</th>
         <th class="col-1">Nation</th>
-        <th class="col-1">Mange/Points</th>
-        <th class="col-1">Mange/Temps</th>
-        <th class="col-1">Barrage/Points</th>
-        <th class="col-1">Barrage/Temps</th>
+        <th class="col-1 small-font">Mange/Points</th>
+        <th class="col-1 small-font">Mange/Temps</th>
+        <th class="col-1 small-font">Barrage/Points</th>
+        <th class="col-1 small-font">Barrage/Temps</th>
       </tr>
       </thead>
       <tbody id="ranking">
@@ -191,6 +194,7 @@
     </table>
     </div>
   </section>
+  </div>
 </main>
 <footer>© 2004-2019 FiveStars, Inc. All Rights Reserved.</footer>
 </div>
