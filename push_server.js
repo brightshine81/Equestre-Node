@@ -102,7 +102,7 @@ io.on('connection', function (socket) {
             console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
             socket.emit('realtime', event.realtime);
 
-            if(event.running) {
+            if(event.running && event.paused == false) {
                 console.log("[emit] socket:resume ");
                 socket.emit('resume');
             } else {

@@ -167,9 +167,9 @@ $(function () {
         realtime = data;
         realtime.updateTick = Date.now();
         // update except time
-        if(timer_running) {
-            setRuntimeList(false);
-        } else {
+        setRuntimeList(false);
+
+        if(timer_running == false) {
             let curTime;
             if(realtime.lane === 1) {
                 curTime = realtime.score.lane1.time;
