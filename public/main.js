@@ -143,7 +143,7 @@ $(function () {
 
     // one ready to race
     socket.on('ready', function(data) {
-        console.log("[on] ready:" + JSON.stringify(data));
+        console.log("[on] ready:");
         // find position
         let index = -1;
         for(let i = 0 ; i < startlist.length ; i++) {
@@ -322,7 +322,7 @@ $(function () {
         }
 
         let label = formatFloat(score.point / 1000, 2, 'floor');
-        if(detail && score.pointPenalty !== 0) {
+        if(detail && (score.pointPenalty !== undefined && score.pointPenalty != 0)) {
             label += "(+" + formatFloat(score.pointPenalty / 1000, 2, 'floor') + ")";
         }
         return label;
@@ -333,7 +333,7 @@ $(function () {
             return "&nbsp";
 
         let label = formatFloat(Math.abs(score.time) / 1000, 2, 'floor');
-        if(detail && score.timePenalty !== 0) {
+        if(detail && (score.timePenalty !== undefined && score.timePenalty != 0)) {
             label += "(+" + formatFloat(Math.abs(score.timePenalty) / 1000, 2, 'floor') + ")";
         }
         return label;
@@ -360,7 +360,6 @@ $(function () {
              headers.children("th:nth-child(8)").css("display", "none").removeClass("small-font");
              headers.children("th:nth-child(9)").css("display", "none").removeClass("small-font");
          }
-
 
         // realtime
         var tr = $('#live-realtime tr:first');
@@ -488,6 +487,19 @@ $(function () {
         var index = 1;
         for (let i = 0 ; i < startlist.length ; i++) {
             startlist[i].rank = i + 1; // it is pos value
+
+            number = startlist[i].no;
+
+            ranking = rankings.find(function(ranking) {
+                return ranking.no === number;
+            });
+            if(ranking !== undefined) {
+                // add empty ranking
+                startlist[i].score = ranking.score;
+            } else {
+                startlist[i].score = { lane1: {}, lane2: {} };
+            }
+
             addToRankingList("startlist", index++, startlist[i]);
         }
         // clearRankingRemains("startlist", index);

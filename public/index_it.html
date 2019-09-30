@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Live-Timing Equestre Version 1.2</title>
+<title>Live-Timing Equestre Version 1.3</title>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -34,8 +34,8 @@
       <table class="table table-scoreboard eventboard">
         <thead>
         <tr>
-          <th class="col-4">Titolo</th>
-          <th class="col-4">Sottotitolo</th>
+          <th class="col-4">Concorso</th>
+          <th class="col-4">Premio</th>
           <th class="col-2">data di inizio</th>
           <th class="col-2">fine della data</th>
         </tr>
@@ -179,10 +179,10 @@
         <th class="col-2">Cavallo</th>
         <th class="col-3">Cavalieri</th>
         <th class="col-1">Nazione</th>
-        <th class="col-1">&nbsp;</th>
-        <th class="col-1">&nbsp;</th> small-font
-        <th class="col-1">&nbsp;</th>
-        <th class="col-1">&nbsp;</th>
+        <th class="col-1 small-font">Prova/Punti</th>
+        <th class="col-1 small-font">Prova/Tempo</th>
+        <th class="col-1 small-font">Barrage/Punti</th>
+        <th class="col-1 small-font">Barrage/Tempo</th>
       </tr>
       </thead>
       <tbody id="startlist">
@@ -217,7 +217,7 @@
     <div id="error_finishevent" class="alert alert-danger" style="display: none;">L'evento è finito.</div>
   </div>
 </main>
-<footer>? 2004-2019 FiveStars, Inc. All Rights Reserved.</footer>
+<footer>© 2015-2019 www.weratv.ch, CH-3176 Neuenegg. All Rights Reserved.</footer>
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/main.js"></script>

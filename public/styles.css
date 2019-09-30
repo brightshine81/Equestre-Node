@@ -182,8 +182,8 @@ td.flag {
 }
 
 .table-scoreboard tbody td.small-font, .table-scoreboard thead th.small-font {
-    font-size: 0.7em;
-    line-height: 2;
+    /*font-size: 0.7em;*/
+    /*line-height: 2;*/
 }
 
 .table-scoreboard thead tr th {

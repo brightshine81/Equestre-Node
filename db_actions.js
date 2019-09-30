@@ -35,8 +35,8 @@ exports.findEvent = function(eventTitle, eventDate) {
 
 exports.addEvent = function(eventInfo) {
     var deferred = Q.defer();
-    dbconnection.query('INSERT INTO tb_events(eventName, eventDate, title, titleStart, titleEnd) VALUES (?, ?, ?, ?, ?)',
-        [eventInfo.eventTitle, eventInfo.eventDate, eventInfo.title, eventInfo.startDate, eventInfo.endDate],
+    dbconnection.query('INSERT INTO tb_events(eventName, eventDate, title, titleStart, titleEnd, roundNumber, jumpoffNumber) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [eventInfo.eventTitle, eventInfo.eventDate, eventInfo.title, eventInfo.startDate, eventInfo.endDate, eventInfo.roundNumber, eventInfo.jumpoffNumber],
         function (err, results, fields) {
             if(err) {
                 deferred.reject(new Error(err));

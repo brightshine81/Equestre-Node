@@ -37,9 +37,16 @@ app.use(express.static(__dirname + '/public'));
  */
 var events = [];
 
+/*
+    socket commands
+    subscribe <roomId>,  roomId = provider | consumer | eventId
+    unsubscribe <roomId>
+    push { cmd: cmd, ... }
+
+ */
 io.on('connection', function (socket) {
     socket.on('subscribe', function (room) {
-        console.log("subscribe: " + room);
+        console.log("[on] subscribe: " + room);
 
         // send about the event
         if(room === "provider") {
@@ -99,29 +106,31 @@ io.on('connection', function (socket) {
             console.log("[emit] socket:startlist");
             socket.emit('startlist', event.startlist);
 
-            console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
-            socket.emit('realtime', event.realtime);
+            if(event.realtime.no !== undefined) {
+                console.log("[emit] socket:realtime(initial) " + JSON.stringify(event.realtime));
+                socket.emit('realtime', event.realtime);
 
-            if(event.running && event.paused == false) {
-                console.log("[emit] socket:resume ");
-                socket.emit('resume');
-            } else {
-                // check whether current horse is finished
-                if(event.finalNo === event.realtime.no) {
-                    console.log("[emit] socket:final ");
-                    socket.emit('final')
+                if(event.running && event.paused == false) {
+                    console.log("[emit] socket:resume ");
+                    socket.emit('resume');
                 } else {
-                    console.log("[emit] socket:ready ");
-                    socket.emit('ready');
+                    // check whether current horse is finished
+                    if(event.finalNo === event.realtime.no) {
+                        console.log("[emit] socket:final ");
+                        socket.emit('final')
+                    } else {
+                        console.log("[emit] socket:ready ");
+                        socket.emit('ready');
+                    }
                 }
             }
         }
     });
 
     socket.on('unsubscribe', function (room) {
-        roomId = '' + room;
-        console.log("unsubscribe: " + roomId);
+        console.log("[on] unsubscribe: " + room);
 
+        roomId = '' + room;
         let rooms = Object.keys(socket.rooms);
         console.log("rooms=" + JSON.stringify(rooms));
 
@@ -141,6 +150,8 @@ io.on('connection', function (socket) {
     });
 
     socket.on('push', function (msg) {
+        console.log("[on] push: ");
+
         // console.log("push: " + msg);
         // check if provider
         let rooms = Object.keys(socket.rooms);
@@ -161,6 +172,7 @@ io.on('connection', function (socket) {
             console.error("invalid message");
             return;
         }
+        console.log("push cmd=" + obj.cmd);
 
         if (obj.cmd === 'atstart') {
             processAtStart(obj);
