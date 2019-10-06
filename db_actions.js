@@ -67,7 +67,7 @@ exports.addHorse = function(eventId, horse) {
     var deferred = Q.defer();
 
     dbconnection.query('INSERT INTO tb_horses(eventId, number, name, age, birthday, owner) VALUES (?, ?, ?, ?, ?, ?)',
-        [eventId, horse.no, horse.name, horse.age, horse.birthday, horse.owner],
+        [eventId, horse.idx, horse.name, horse.age, horse.birthday, horse.owner],
         function (err, results, fields) {
             if(err) {
                 deferred.reject(new Error(err));
@@ -97,7 +97,7 @@ exports.addRider = function(eventId, rider) {
     var deferred = Q.defer();
 
     dbconnection.query('INSERT INTO tb_riders(eventId, number, firstName, lastName, birthday, nation) VALUES (?, ?, ?, ?, ?, ?)',
-        [eventId, rider.no, rider.firstName, rider.lastName, rider.birthday, rider.nation],
+        [eventId, rider.idx, rider.firstName, rider.lastName, rider.birthday, rider.nation],
         function (err, results, fields) {
             if(err) {
                 deferred.reject(new Error(err));
@@ -130,7 +130,7 @@ exports.addRanking = function(eventId, rank) {
     var deferred = Q.defer();
 
     dbconnection.query('INSERT INTO tb_ranks(eventId, number, rank, point1, pointPlus1, time1, timePlus1, point2, pointPlus2, time2, timePlus2, jumpOff) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [eventId, rank.no, rank.rank, rank.point1, rank.pointPlus1, rank.time1, rank.timePlus1, rank.point2, rank.pointPlus2, rank.time2, rank.timePlus2, rank.jumpOff?1:0],
+        [eventId, rank.num, rank.rank, rank.point1, rank.pointPlus1, rank.time1, rank.timePlus1, rank.point2, rank.pointPlus2, rank.time2, rank.timePlus2, rank.jumpOff?1:0],
         function (err, results, fields) {
             if(err) {
                 deferred.reject(new Error(err));
@@ -143,3 +143,34 @@ exports.addRanking = function(eventId, rank) {
 };
 
 
+exports.deleteStartLists = function(eventId) {
+    var deferred = Q.defer();
+
+    dbconnection.query('DELETE FROM tb_startlist WHERE eventId = ?', [eventId], function (err, results, fields) {
+        if(err) {
+            deferred.reject(new Error(err));
+        } else {
+            console.log('ranking command: delete records=' + results.affectedRows);
+            deferred.resolve(results.affectedRows);
+        }
+    });
+
+    return deferred.promise;
+};
+
+
+exports.addStartList = function(eventId, startlistentry) {
+    var deferred = Q.defer();
+
+    dbconnection.query('INSERT INTO tb_startlist(eventId, pos, num, horse_idx, rider_idx) VALUES (?, ?, ?, ?, ?)',
+        [eventId, startlistentry.pos, startlistentry.num, startlistentry.horse_idx, startlistentry.rider_idx],
+        function (err, results, fields) {
+            if(err) {
+                deferred.reject(new Error(err));
+            } else {
+                deferred.resolve(1);
+            }
+        });
+
+    return deferred.promise;
+};

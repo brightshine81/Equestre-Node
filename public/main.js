@@ -7,11 +7,13 @@ $(function () {
     var curEvent = 0;
 
     // info of current event
-    var horses = {};    // number-indexed map
-    var riders = {};    // number-indexed map
+    var startlist = []; // startlist
+    var horses = {};    // indexed map
+    var riders = {};    // indexed map
+    var startlistmap = {};  // number indexed map
     var rankings = [];  // ranking list
     var realtime = {};  // live info
-    var startlist = []; // startlist
+
 
     var rolling_timer;
     var timer_running = false;
@@ -93,8 +95,9 @@ $(function () {
     // update horse info
     socket.on('horses', function (data) {
         console.log("[on] horses:" + data.length/* + JSON.stringify(data) */);
+        horses = {};
         for (let horse of data) {
-            horses[horse.no] = horse;
+            horses[horse.idx] = horse;
         }
 
         // update UI
@@ -106,8 +109,9 @@ $(function () {
     // update rider info
     socket.on('riders', function (data) {
         console.log("[on] riders:" + data.length/* + JSON.stringify(data) */);
+        riders = {};
         for (let rider of data) {
-            riders[rider.no] = rider;
+            riders[rider.idx] = rider;
         }
 
         // update UI
@@ -120,6 +124,11 @@ $(function () {
     socket.on('startlist', function (data) {
         console.log("[on] startlist:" + data.length/* + JSON.stringify(data) */);
         startlist = data;
+
+        startlistmap = {};
+        for (let startlistentry of data) {
+            startlistmap[startlistentry.num] = startlistentry;
+        }
 
         // updateUI
         updateStartList();
@@ -135,6 +144,14 @@ $(function () {
         });
 
         rankings = data;
+        for (let i = 0 ; i < rankings.length ; i++) {
+            let num = rankings[i].num;
+            let startlistentry = startlistmap[num];
+            if(startlistentry !== undefined) {
+                rankings[i].horse_idx = startlistentry.horse_idx;
+                rankings[i].rider_idx = startlistentry.rider_idx;
+            }
+        }
 
         // Update UI
         updateLiveRankingList();
@@ -145,16 +162,12 @@ $(function () {
     socket.on('ready', function(data) {
         console.log("[on] ready:");
         // find position
-        let index = -1;
-        for(let i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === realtime.no) {
-                index = i;
-            }
-        }
+        let startlistentry = startlistmap[realtime.num];
+
         // update atstart and atend
-        if(index !== -1) {
-            updateLiveAtStart(index + 1);
-            updateLiveAtFinish(index - 1);
+        if(startlistentry !== undefined) {
+            updateLiveAtStart(startlistentry['pos'] + 1);
+            updateLiveAtFinish(startlistentry['pos'] - 1);
         }
 
         // init realtime and update
@@ -165,6 +178,7 @@ $(function () {
     socket.on('realtime', function (data) {
         console.log("[on] realtime:" + JSON.stringify(data));
         realtime = data;
+
         realtime.updateTick = Date.now();
         // update except time
         setRuntimeList(false);
@@ -184,17 +198,13 @@ $(function () {
     socket.on('resume', function (data) {
         console.log("[on] resume");
 
-        // update live tables
-        let index = -1;
-        for(let i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === realtime.no) {
-                index = i;
-            }
-        }
+        // find position
+        let startlistentry = startlistmap[realtime.num];
+
         // update atstart and atend
-        if(index !== -1) {
-            updateLiveAtStart(index + 1);
-            updateLiveAtFinish(index - 1);
+        if(startlistentry !== undefined) {
+            updateLiveAtStart(startlistentry['pos'] + 1);
+            updateLiveAtFinish(startlistentry['pos'] - 1);
         }
 
         // start rolling timer
@@ -250,21 +260,18 @@ $(function () {
     socket.on('final', function (data) {
         console.log("[on] final:" + JSON.stringify(data));
 
-        // update list
-        let index = -1;
-        for(i = 0 ; i < startlist.length ; i++) {
-            if(startlist[i].no === realtime.no) {
-                index = i;
-            }
-        }
-        if(index >= 0) {
-            updateLiveAtStart(index + 1);
-            updateLiveAtFinish(index);
+        // find position
+        let startlistentry = startlistmap[realtime.num];
+
+        // update atstart and atend
+        if(startlistentry !== undefined) {
+            updateLiveAtStart(startlistentry['pos'] + 1);
+            updateLiveAtFinish(startlistentry['pos']);
         }
 
         // update runtime with ranking
         let ranking = rankings.find(function(ranking) {
-            return ranking.no === realtime.no;
+            return ranking.num === realtime.num;
         });
         if(ranking !== undefined) {
             realtime.rank = ranking.rank;
@@ -375,9 +382,6 @@ $(function () {
             tr.children("td:nth-child(8)").css("display", "none");
             tr.children("td:nth-child(9)").css("display", "none");
         }
-
-
-
     }
 
     //  fill the list from index to the atstart list
@@ -404,17 +408,17 @@ $(function () {
         var row = 1;
 
         // load ranking data
-        for(i = index ; i > limit ; i--) {
-            number = startlist[i].no;
+        for(let i = index ; i > limit ; i--) {
+            let num = startlist[i].num;
 
-            ranking = rankings.find(function(ranking) {
-                return ranking.no === number;
+            let ranking = rankings.find(function(ranking) {
+                return ranking.num === num;
             });
+
             if(ranking === undefined) {
                 // add empty ranking
-                ranking = { no: number, score: { lane1: {}, lane2: {} }};
+                ranking = { num: num, score: { lane1: {}, lane2: {} }};
             }
-
             addToRankingList("live-atfinish", row++, ranking);
         }
         // clearRankingRemains("live-atfinish", row);
@@ -444,12 +448,14 @@ $(function () {
         var tr = $('#live-realtime tr');
 
         // clear content
-        if (realtime.no == 0) {
+        if (realtime.num == 0 || startlistmap[realtime.num] === undefined) {
             clearRuntimeList();
             return;
         }
+        let startlistentry = startlistmap[realtime.num];
+
         tr.children("td:nth-child(1)").html((realtime.rank===undefined)?"&nbsp":realtime.rank + ".");
-        tr.children("td:nth-child(2)").html(realtime.no);
+        tr.children("td:nth-child(2)").html(realtime.num);
         tr.children("td:nth-child(6)").html(formatPoint(realtime.score.lane1, false));
         tr.children("td:nth-child(8)").html(formatPoint(realtime.score.lane2, false));
         if(fullupdate === true) {
@@ -457,14 +463,14 @@ $(function () {
             tr.children("td:nth-child(9)").html(formatTime(realtime.score.lane2, false));
         }
 
-        var horse = horses[realtime.no];
+        var horse = horses[startlistentry.horse_idx];
         if (horse !== undefined) {
             tr.children("td:nth-child(3)").html(horse.name);
         } else {
             tr.children("td:nth-child(3)").html("&nbsp");
         }
 
-        var rider = riders[realtime.no];
+        var rider = riders[startlistentry.rider_idx];
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
             tr.children("td:nth-child(5)").css("background", "#232323 url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");
@@ -488,10 +494,10 @@ $(function () {
         for (let i = 0 ; i < startlist.length ; i++) {
             startlist[i].rank = i + 1; // it is pos value
 
-            number = startlist[i].no;
+            let num = startlist[i].num;
 
-            ranking = rankings.find(function(ranking) {
-                return ranking.no === number;
+            let ranking = rankings.find(function(ranking) {
+                return ranking.num === num;
             });
             if(ranking !== undefined) {
                 // add empty ranking
@@ -518,6 +524,8 @@ $(function () {
     function addToRankingList(tableId, i, ranking) {
         var tr = $('#' + tableId + ' tr:nth-child(' + i + ')');
 
+        let startlistentry = startlistmap[ranking.num];
+
         if (tr.length == 0) {
             $('#' + tableId).append($('<tr>'));
             tr = $('#' + tableId + ' tr:last');
@@ -539,7 +547,7 @@ $(function () {
         }
 
         tr.children("td:nth-child(1)").html((ranking.rank===undefined)?"&nbsp":(ranking.rank + "."));
-        tr.children("td:nth-child(2)").html(ranking.no);
+        tr.children("td:nth-child(2)").html(ranking.num);
 
         tr.children("td:nth-child(6)").html(formatPoint(ranking.score.lane1, true));
         tr.children("td:nth-child(7)").html(formatTime(ranking.score.lane1, true));
@@ -549,14 +557,20 @@ $(function () {
             tr.children("td:nth-child(9)").html(formatTime(ranking.score.lane2, true));
         }
 
-        var horse = horses[ranking.no];
+        let horse = undefined;
+        if(startlistentry !== undefined) {
+            horse = horses[startlistentry.horse_idx];
+        }
         if (horse !== undefined) {
             tr.children("td:nth-child(3)").html(horse.name);
         } else {
             tr.children("td:nth-child(3)").html("&nbsp");
         }
 
-        var rider = riders[ranking.no];
+        let rider = undefined;
+        if(startlistentry !== undefined) {
+            rider = riders[startlistentry.rider_idx];
+        }
         if (rider !== undefined) {
             tr.children("td:nth-child(4)").html(rider.lastName + "&nbsp" + rider.firstName);
             tr.children("td:nth-child(5)").css("background", "#232323 url('flags/" + rider.nation + ".bmp') center no-repeat").css("background-size", "contain");

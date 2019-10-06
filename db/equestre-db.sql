@@ -11,7 +11,7 @@
  Target Server Version : 100135
  File Encoding         : 65001
 
- Date: 30/09/2019 19:27:03
+ Date: 06/10/2019 23:02:02
 */
 
 SET NAMES utf8mb4;
@@ -31,7 +31,7 @@ CREATE TABLE `tb_events`  (
   `roundNumber` tinyint(4) NOT NULL,
   `jumpoffNumber` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for tb_horses
@@ -79,6 +79,18 @@ CREATE TABLE `tb_riders`  (
   `nation` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `birthday` datetime(0) NULL DEFAULT NULL,
   PRIMARY KEY (`eventId`, `number`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+-- ----------------------------
+-- Table structure for tb_startlist
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_startlist`;
+CREATE TABLE `tb_startlist`  (
+  `eventId` int(255) NULL DEFAULT NULL,
+  `pos` int(255) NULL DEFAULT NULL,
+  `num` int(11) NULL DEFAULT NULL,
+  `horse_idx` int(255) NULL DEFAULT NULL,
+  `rider_idx` int(255) NULL DEFAULT NULL
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET FOREIGN_KEY_CHECKS = 1;
